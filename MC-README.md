@@ -1,3 +1,6 @@
+---
+title: MC Guest Reservation
+---
 # Magic Castle Guest Invitation System
 
 A Flask-based REST API for managing guest invitations in a membership system. This application handles guest invitation creation, email notifications, and invitation acceptance workflows, deployed on AWS using ECS Fargate, RDS MariaDB, and Application Load Balancer.
