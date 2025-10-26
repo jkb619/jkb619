@@ -1,4 +1,5 @@
 ---
+layout: default
 title: MC Guest Reservation
 ---
 # Magic Castle Guest Invitation System
