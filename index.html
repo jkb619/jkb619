@@ -1,8 +1,39 @@
----
-layout: default
-title: MC Guest Reservation
----
-# Magic Castle Guest Invitation System
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MC Guest Reservation</title>
+  
+  <!-- Mermaid.js for diagram rendering -->
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ 
+      startOnLoad: true,
+      theme: 'default',
+      themeVariables: {
+        primaryColor: '#e1f5fe',
+        primaryTextColor: '#000',
+        primaryBorderColor: '#000',
+        lineColor: '#000',
+        secondaryColor: '#fff3e0',
+        tertiaryColor: '#e8f5e8'
+      }
+    });
+  </script>
+  
+  <!-- Marked.js for markdown to HTML conversion -->
+  <script type="module">
+    import { marked } from 'https://cdn.jsdelivr.net/npm/marked@13/+esm';
+    
+    // Configure marked to handle mermaid code blocks
+    marked.setOptions({
+      breaks: true,
+      gfm: true
+    });
+    
+    const markdown = `---
+# MC Guest Invitation System
 
 A Flask-based REST API for managing guest invitations in a membership system. This application handles guest invitation creation, email notifications, and invitation acceptance workflows, deployed on AWS using ECS Fargate, RDS MariaDB, and Application Load Balancer.
 
@@ -10,7 +41,7 @@ A Flask-based REST API for managing guest invitations in a membership system. Th
 
 The application is deployed on AWS with the following architecture:
 
-```mermaid
+\`\`\`mermaid
 graph TB
     subgraph "Internet"
         User[User/Client]
@@ -66,7 +97,7 @@ graph TB
     style DB fill:#e8f5e8
     style ALB fill:#e0f2f1
     style Secrets fill:#fce4ec
-```
+\`\`\`
 
 ## ✨ Features
 
@@ -82,34 +113,34 @@ graph TB
 ## 🌐 API Endpoints
 
 ### 1. Health Check
-- **Endpoint**: `GET /health`
+- **Endpoint**: \`GET /health\`
 - **Purpose**: Application health monitoring
 - **Response**: 
-  ```json
+  \`\`\`json
   {
     "status": "healthy"
   }
-  ```
+  \`\`\`
 
 ### 2. Create Guest Invitation
-- **Endpoint**: `POST /peoplevine-guest-invite`
+- **Endpoint**: \`POST /peoplevine-guest-invite\`
 - **Purpose**: Create a single guest invitation and send email notification
 - **Payload**: 
-  ```json
+  \`\`\`json
   {
     "first_name": "Member's first name",
     "last_name": "Member's last name",
     "memberID": "Member's unique ID",
     "guest_email": "Guest's email address"
   }
-  ```
+  \`\`\`
 
 ### 3. Generate Multiple Invitations
-- **Endpoint**: `POST /peoplevine-generate-invitations`
+- **Endpoint**: \`POST /peoplevine-generate-invitations\`
 - **Purpose**: Generate multiple invitation IDs for bulk operations
 - **Authentication**: Required (username and token)
 - **Payload**:
-  ```json
+  \`\`\`json
   {
     "username": "someUser",
     "token": "someToken",
@@ -120,20 +151,20 @@ graph TB
       }
     ]
   }
-  ```
+  \`\`\`
 
 ### 4. Accept Guest Invitation
-- **Endpoint**: `GET /guest-invite-accept`
+- **Endpoint**: \`GET /guest-invite-accept\`
 - **Purpose**: Process guest invitation acceptance
-- **Parameters**: `invitation_id`, `MemberID`, `guest_email`
+- **Parameters**: \`invitation_id\`, \`MemberID\`, \`guest_email\`
 
 ### 5. List All Invitations
-- **Endpoint**: `GET /guest-invites`
+- **Endpoint**: \`GET /guest-invites\`
 - **Purpose**: Retrieve all guest invitations (administrative)
 
 ## 🗄️ Database Schema
 
-The application uses a single table `guest_invites` with the following structure:
+The application uses a single table \`guest_invites\` with the following structure:
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -145,7 +176,7 @@ The application uses a single table `guest_invites` with the following structure
 
 ## 🔄 Application Flow
 
-```mermaid
+\`\`\`mermaid
 graph TD
     A[Client Request] --> B{Request Type}
     
@@ -202,11 +233,11 @@ graph TD
     style E fill:#f3e5f5
     style F fill:#e0f2f1
     style G fill:#e8f5e8
-```
+\`\`\`
 
 ## 📧 Email Flow
 
-```mermaid
+\`\`\`mermaid
 sequenceDiagram
     participant Client
     participant ALB
@@ -239,7 +270,7 @@ sequenceDiagram
     RDS-->>ECS: Confirmation
     ECS-->>ALB: Acceptance Confirmation
     ALB-->>Guest: Acceptance Confirmation
-```
+\`\`\`
 
 ## 🚀 Infrastructure Components
 
@@ -272,34 +303,34 @@ sequenceDiagram
 ### Local Development
 
 1. **Clone the repository**:
-   ```bash
+   \`\`\`bash
    git clone <repository-url>
    cd mc-guest-reservation
-   ```
+   \`\`\`
 
 2. **Set up environment variables**:
-   ```bash
+   \`\`\`bash
    export DB_HOST=localhost
    export DB_USER=root
    export DB_PASSWORD=your_password
    export DB_NAME=guest_reservations
    export PEOPLEVINE_TOKEN=your_token
    export SEVENROOMS_TOKEN=your_token
-   ```
+   \`\`\`
 
 3. **Install dependencies**:
-   ```bash
+   \`\`\`bash
    pip install -r docker/requirements.txt
-   ```
+   \`\`\`
 
 4. **Run the application**:
-   ```bash
+   \`\`\`bash
    python src/mc.py
-   ```
+   \`\`\`
 
 ### Docker Development
 
-```bash
+\`\`\`bash
 # Build the image
 make build
 
@@ -311,13 +342,13 @@ make health
 
 # View logs
 make logs
-```
+\`\`\`
 
 ### Production Deployment
 
 The application is deployed using Terragrunt on AWS:
 
-```bash
+\`\`\`bash
 # Deploy all infrastructure
 terragrunt run-all apply
 
@@ -326,7 +357,7 @@ make deploy
 
 # Check deployment status
 aws ecs describe-services --cluster magic-castle-cluster --services magic-castle-service
-```
+\`\`\`
 
 ## 🔒 Security Features
 
@@ -340,7 +371,7 @@ aws ecs describe-services --cluster magic-castle-cluster --services magic-castle
 
 ## 📊 Monitoring & Observability
 
-- **Health Checks**: Application health monitoring at `/health`
+- **Health Checks**: Application health monitoring at \`/health\`
 - **CloudWatch Logs**: Centralized logging for all components
 - **ECS Service Discovery**: Automatic service registration
 - **ALB Metrics**: Load balancer performance monitoring
@@ -349,21 +380,21 @@ aws ecs describe-services --cluster magic-castle-cluster --services magic-castle
 ## 🔧 Configuration Management
 
 ### Environment Variables (ECS Task)
-- `FLASK_ENV`: Set to "production"
-- `SECRETS_MANAGER_ARN`: ARN of the secrets in AWS Secrets Manager
-- `IMAGE_VERSION`: Version tag for the Docker image
+- \`FLASK_ENV\`: Set to "production"
+- \`SECRETS_MANAGER_ARN\`: ARN of the secrets in AWS Secrets Manager
+- \`IMAGE_VERSION\`: Version tag for the Docker image
 
 ### Secrets (AWS Secrets Manager)
-- `PEOPLEVINE_TOKEN`: PeopleVine API authentication token
-- `SEVENROOMS_TOKEN`: SevenRooms API authentication token
-- `DB_HOST`: Database hostname
-- `DB_PORT`: Database port (3306)
-- `DB_NAME`: Database name
-- `DB_USER`: Database username
-- `DB_PASSWORD`: Database password
-- `SES_ACCESS_KEY_ID`: AWS SES access key
-- `SES_SECRET_ACCESS_KEY`: AWS SES secret key
-- `SES_SMTP_PASSWORD`: AWS SES SMTP password
+- \`PEOPLEVINE_TOKEN\`: PeopleVine API authentication token
+- \`SEVENROOMS_TOKEN\`: SevenRooms API authentication token
+- \`DB_HOST\`: Database hostname
+- \`DB_PORT\`: Database port (3306)
+- \`DB_NAME\`: Database name
+- \`DB_USER\`: Database username
+- \`DB_PASSWORD\`: Database password
+- \`SES_ACCESS_KEY_ID\`: AWS SES access key
+- \`SES_SECRET_ACCESS_KEY\`: AWS SES secret key
+- \`SES_SMTP_PASSWORD\`: AWS SES SMTP password
 
 ## 🚨 Error Handling
 
@@ -387,21 +418,21 @@ The application includes comprehensive error handling for:
 ## 🧪 Testing
 
 ### Health Check
-```bash
+\`\`\`bash
 curl https://guest-reservation.tulta-munille.com/health
-```
+\`\`\`
 
 ### Create Invitation
-```bash
-curl -X POST https://guest-reservation.tulta-munille.com/peoplevine-guest-invite \
-  -H "Content-Type: application/json" \
+\`\`\`bash
+curl -X POST https://guest-reservation.tulta-munille.com/peoplevine-guest-invite \\
+  -H "Content-Type: application/json" \\
   -d '{
     "first_name": "John",
     "last_name": "Doe",
     "memberID": "12345",
     "guest_email": "guest@example.com"
   }'
-```
+\`\`\`
 
 ## 🔄 CI/CD Pipeline
 
@@ -438,4 +469,140 @@ For issues and questions:
 1. Check the [troubleshooting guide](terraform/README.md#troubleshooting)
 2. Review CloudWatch logs
 3. Check ECS service status
-4. Verify security group configurations
+4. Verify security group configurations`;
+
+    // Convert markdown to HTML
+    const html = await marked(markdown);
+    
+    // Process mermaid diagrams
+    const processed = html.replace(
+      /<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g,
+      (match, content) => {
+        const trimmed = content.trim();
+        return `<div class="mermaid">${trimmed}</div>`;
+      }
+    );
+    
+    // Set the content
+    document.getElementById('content').innerHTML = processed;
+  </script>
+  
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      color: #333;
+      background-color: #fff;
+    }
+    
+    h1 {
+      color: #2c3e50;
+      border-bottom: 3px solid #3498db;
+      padding-bottom: 10px;
+    }
+    
+    h2 {
+      color: #34495e;
+      border-bottom: 2px solid #ecf0f1;
+      padding-bottom: 8px;
+      margin-top: 30px;
+    }
+    
+    h3 {
+      color: #555;
+      margin-top: 25px;
+    }
+    
+    pre {
+      background-color: #f8f9fa;
+      border: 1px solid #e1e4e8;
+      border-radius: 6px;
+      padding: 16px;
+      overflow-x: auto;
+    }
+    
+    code {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+      background-color: rgba(27,31,35,0.05);
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
+      font-size: 85%;
+    }
+    
+    pre code {
+      background-color: transparent;
+      padding: 0;
+    }
+    
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 20px 0;
+    }
+    
+    table th,
+    table td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: left;
+    }
+    
+    table th {
+      background-color: #f6f8fa;
+      font-weight: 600;
+    }
+    
+    ul, ol {
+      padding-left: 30px;
+    }
+    
+    li {
+      margin: 8px 0;
+    }
+    
+    blockquote {
+      border-left: 4px solid #dfe2e5;
+      padding-left: 16px;
+      margin: 16px 0;
+      color: #6a737d;
+    }
+    
+    a {
+      color: #0366d6;
+      text-decoration: none;
+    }
+    
+    a:hover {
+      text-decoration: underline;
+    }
+    
+    .mermaid {
+      text-align: center;
+      margin: 20px 0;
+      background: #fff;
+      padding: 20px;
+      border: 1px solid #e1e4e8;
+      border-radius: 6px;
+    }
+    
+    hr {
+      border: 0;
+      border-top: 1px solid #eaecef;
+      margin: 30px 0;
+    }
+    
+    ::selection {
+      background-color: #b3d4fc;
+    }
+  </style>
+</head>
+<body>
+  <div id="content">
+    <p>Loading...</p>
+  </div>
+</body>
+</html>
+
