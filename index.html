@@ -32,8 +32,7 @@
       gfm: true
     });
     
-    const markdown = `---
-# MC Guest Invitation System
+    const markdown = `# Magic Castle Guest Invitation System
 
 A Flask-based REST API for managing guest invitations in a membership system. This application handles guest invitation creation, email notifications, and invitation acceptance workflows, deployed on AWS using ECS Fargate, RDS MariaDB, and Application Load Balancer.
 
@@ -48,9 +47,9 @@ graph TB
         Guest[Guest User]
     end
     
-    subgraph "AWS Cloud - us-east-2"
+    subgraph "AWS Cloud - us-west-1"
         subgraph "Route53"
-            DNS[guest-reservation.tulta-munille.com]
+            DNS[guest-reservations.magiccastle-cloud.com]
         end
         
         subgraph "Public Subnets"
@@ -253,10 +252,8 @@ sequenceDiagram
     ECS->>ECS: Generate UUID4
     ECS->>RDS: Store Invitation
     RDS-->>ECS: Confirmation
-    ECS->>SecretsManager: Get SES Credentials
-    SecretsManager-->>ECS: Credentials
-    ECS->>ECS: Configure Email
-    ECS->>AWS_SES: Send Invitation Email
+    ECS->>ECS: Configure Email (using ECS Task Role)
+    ECS->>AWS_SES: Send Invitation Email via SES API
     AWS_SES->>Guest: Email with Invitation Link
     ECS-->>ALB: Success Response
     ALB-->>Client: Success Response
@@ -293,12 +290,37 @@ sequenceDiagram
 
 ## 🛠️ Development & Deployment
 
+### First-Time Setup
+
+**IMPORTANT**: For first-time deployments, you must deploy the KMS key first and configure SOPS:
+
+1. **Deploy KMS Key** (required for secrets encryption):
+   \`\`\`bash
+   cd terraform/kms
+   terragrunt apply
+   cd ..
+   \`\`\`
+
+2. **Get KMS Key ARN and configure SOPS**:
+   \`\`\`bash
+   cd kms && terragrunt output key_arn && cd ..
+   # Update terraform/secrets/.sops.yaml with the key ARN
+   \`\`\`
+
+3. **Create and encrypt secrets**:
+   \`\`\`bash
+   sops terraform/secrets/config.yaml
+   \`\`\`
+
+For detailed setup instructions, see [terraform/SETUP.md](terraform/SETUP.md).
+
 ### Prerequisites
 - Python 3.13+
 - Docker
 - AWS CLI configured
 - Terragrunt
 - Terraform
+- SOPS (for secrets management)
 
 ### Local Development
 
@@ -392,9 +414,8 @@ aws ecs describe-services --cluster magic-castle-cluster --services magic-castle
 - \`DB_NAME\`: Database name
 - \`DB_USER\`: Database username
 - \`DB_PASSWORD\`: Database password
-- \`SES_ACCESS_KEY_ID\`: AWS SES access key
-- \`SES_SECRET_ACCESS_KEY\`: AWS SES secret key
-- \`SES_SMTP_PASSWORD\`: AWS SES SMTP password
+
+**Note**: SES authentication is handled via ECS task role - no SMTP credentials needed.
 
 ## 🚨 Error Handling
 
@@ -419,12 +440,12 @@ The application includes comprehensive error handling for:
 
 ### Health Check
 \`\`\`bash
-curl https://guest-reservation.tulta-munille.com/health
+curl https://guest-reservations.magiccastle-cloud.com/health
 \`\`\`
 
 ### Create Invitation
 \`\`\`bash
-curl -X POST https://guest-reservation.tulta-munille.com/peoplevine-guest-invite \\
+curl -X POST https://guest-reservations.magiccastle-cloud.com/peoplevine-guest-invite \\
   -H "Content-Type: application/json" \\
   -d '{
     "first_name": "John",
@@ -605,4 +626,3 @@ For issues and questions:
   </div>
 </body>
 </html>
-
