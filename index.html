@@ -170,8 +170,9 @@ The application uses a single table \`guest_invites\` with the following structu
 | invitation_id | VARCHAR(36) | Primary key, UUID4 identifier |
 | guest_email | VARCHAR(255) | Guest's email address |
 | member_id | VARCHAR(255) | ID of the inviting member |
-| created_at | TIMESTAMP | Creation timestamp |
-| used | BOOLEAN | Whether invitation has been used |
+| redeemed | BOOLEAN | Whether invitation has been redeemed |
+| created_date | DATETIME | Date and time when invitation was created |
+| redeemed_date | DATETIME | Date and time when invitation was redeemed |
 
 ## 🔄 Application Flow
 
@@ -204,10 +205,10 @@ graph TD
     E2 --> E3[Check Invitation Exists in RDS]
     E3 --> E4{Invitation Valid?}
     E4 -->|No| E5[Return Error 404]
-    E4 -->|Yes| E6[Check if Already Used]
-    E6 --> E7{Already Used?}
+    E4 -->|Yes| E6[Check if Already Redeemed]
+    E6 --> E7{Already Redeemed?}
     E7 -->|Yes| E8[Return Error 400]
-    E7 -->|No| E9[Mark as Used in RDS]
+    E7 -->|No| E9[Mark as Redeemed in RDS]
     E9 --> E10[Return Success]
     
     F --> F1[Connect to RDS Database]
@@ -262,8 +263,8 @@ sequenceDiagram
     ALB->>ECS: Forward Request
     ECS->>RDS: Validate Invitation
     RDS-->>ECS: Invitation Details
-    ECS->>ECS: Check if Used
-    ECS->>RDS: Mark as Used
+    ECS->>ECS: Check if Redeemed
+    ECS->>RDS: Mark as Redeemed
     RDS-->>ECS: Confirmation
     ECS-->>ALB: Acceptance Confirmation
     ALB-->>Guest: Acceptance Confirmation
@@ -337,7 +338,11 @@ For detailed setup instructions, see [terraform/SETUP.md](terraform/SETUP.md).
    export DB_PASSWORD=your_password
    export DB_NAME=guest_reservations
    export PEOPLEVINE_TOKEN=your_token
-   export SEVENROOMS_TOKEN=your_token
+   export SEVENROOMS_CLIENT_ID=your_client_id
+  export SEVENROOMS_CLIENT_SECRET=your_client_secret
+  export SEVENROOMS_HOST=https://api.sevenrooms.com
+  export SEVENROOMS_VERSION=/2_4
+  export SEVENROOMS_RESERVATION_WIDGET_URL=https://demo.sevenrooms.com/reservations/docs-ny
    \`\`\`
 
 3. **Install dependencies**:
@@ -408,7 +413,13 @@ aws ecs describe-services --cluster magic-castle-cluster --services magic-castle
 
 ### Secrets (AWS Secrets Manager)
 - \`PEOPLEVINE_TOKEN\`: PeopleVine API authentication token
-- \`SEVENROOMS_TOKEN\`: SevenRooms API authentication token
+- \`MY_AUTH_TOKEN\`: Incoming auth token for PeopleVine calls
+- \`MY_AUTH_ID\`: Incoming auth id/username for PeopleVine calls
+- \`SEVENROOMS_CLIENT_ID\`: SevenRooms API client ID
+- \`SEVENROOMS_CLIENT_SECRET\`: SevenRooms API client secret
+- \`SEVENROOMS_HOST\`: SevenRooms API host URL
+- \`SEVENROOMS_VERSION\`: SevenRooms API version
+- \`SEVENROOMS_RESERVATION_WIDGET_URL\`: SevenRooms reservation widget base URL
 - \`DB_HOST\`: Database hostname
 - \`DB_PORT\`: Database port (3306)
 - \`DB_NAME\`: Database name
