@@ -106,6 +106,10 @@ graph TB
 - **RESTful API**: Clean REST endpoints for all operations
 - **CORS Support**: Cross-origin resource sharing for web frontend integration
 - **Bulk Operations**: Generate multiple invitations at once
+- **SevenRooms Integration**: Full reservation system integration with SevenRooms API
+- **Reservation Calendar**: Interactive calendar widget for guests to select dates and times
+- **Availability Checking**: Real-time availability queries for SevenRooms venues
+- **Reservation Creation**: Direct reservation booking through SevenRooms API
 - **AWS Integration**: Secrets Manager, SES, CloudWatch Logs
 - **Production Ready**: HTTPS, health checks, auto-scaling, monitoring
 
@@ -154,10 +158,46 @@ graph TB
 
 ### 4. Accept Guest Invitation
 - **Endpoint**: \`GET /guest-invite-accept\`
-- **Purpose**: Process guest invitation acceptance
+- **Purpose**: Process guest invitation acceptance and display reservation calendar
 - **Parameters**: \`invitation_id\`, \`MemberID\`, \`guest_email\`
+- **Response**: HTML page with reservation calendar widget
 
-### 5. List All Invitations
+### 5. Get Availability
+- **Endpoint**: \`GET /api/availability\`
+- **Purpose**: Get available time slots for a given date and party size
+- **Query Parameters**: 
+  - \`invitation_id\` (required): The unique invitation identifier
+  - \`date\` (required): Date in YYYY-MM-DD format
+  - \`party_size\` (required): Number of guests (1-8)
+  - \`venue_id\` (optional): SevenRooms venue ID
+- **Response**: JSON with available time slots
+
+### 6. Create Reservation
+- **Endpoint**: \`POST /api/create-reservation\`
+- **Purpose**: Create a reservation via SevenRooms API and mark invitation as redeemed
+- **Payload**:
+  \`\`\`json
+  {
+    "invitation_id": "550e8400-e29b-41d4-a716-446655440000",
+    "venue_id": "12345",
+    "date": "2025-11-15",
+    "time": "19:00",
+    "party_size": 4,
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "guest@example.com",
+    "phone": "555-555-5555"
+  }
+  \`\`\`
+- **Response**: HTML confirmation page with reservation details
+
+### 7. SevenRooms Callback
+- **Endpoint**: \`POST /sevenrooms_callback_post_reservation\`
+- **Purpose**: Webhook callback from SevenRooms after reservation is made
+- **Payload**: \`invitation_id\` (in JSON body or query parameter)
+- **Response**: JSON confirmation of invitation redemption
+
+### 8. List All Invitations
 - **Endpoint**: \`GET /guest-invites\`
 - **Purpose**: Retrieve all guest invitations (administrative)
 
@@ -183,16 +223,20 @@ graph TD
     B -->|POST /peoplevine-guest-invite| C[Create Single Invitation]
     B -->|POST /peoplevine-generate-invitations| D[Generate Multiple Invitations]
     B -->|GET /guest-invite-accept| E[Accept Invitation]
-    B -->|GET /guest-invites| F[List All Invitations]
-    B -->|GET /health| G[Health Check]
+    B -->|GET /api/availability| F[Get Availability]
+    B -->|POST /api/create-reservation| G[Create Reservation]
+    B -->|POST /sevenrooms_callback_post_reservation| H[SevenRooms Callback]
+    B -->|GET /guest-invites| I[List All Invitations]
+    B -->|GET /health| J[Health Check]
     
     C --> C1[Validate Input Data]
     C1 --> C2[Generate UUID4 Invitation ID]
     C2 --> C3[Store in RDS Database]
-    C3 --> C4[Get SES Credentials from Secrets Manager]
-    C4 --> C5[Create Email Message]
-    C5 --> C6[Send via AWS SES]
-    C6 --> C7[Return Success Response]
+    C3 --> C4[Get SevenRooms Venues]
+    C4 --> C5[Get SES Credentials from Secrets Manager]
+    C5 --> C6[Create Email Message]
+    C6 --> C7[Send via AWS SES]
+    C7 --> C8[Return Success with Venues]
     
     D --> D1[Validate Member Data]
     D1 --> D2[Loop Through Members]
@@ -204,38 +248,64 @@ graph TD
     E1 --> E2[Validate Parameters]
     E2 --> E3[Check Invitation Exists in RDS]
     E3 --> E4{Invitation Valid?}
-    E4 -->|No| E5[Return Error 404]
+    E4 -->|No| E5[Return Error 404 HTML]
     E4 -->|Yes| E6[Check if Already Redeemed]
     E6 --> E7{Already Redeemed?}
-    E7 -->|Yes| E8[Return Error 400]
-    E7 -->|No| E9[Mark as Redeemed in RDS]
-    E9 --> E10[Return Success]
+    E7 -->|Yes| E8[Return Error 400 HTML]
+    E7 -->|No| E9[Get SevenRooms Venues]
+    E9 --> E10[Render Reservation Calendar HTML]
     
-    F --> F1[Connect to RDS Database]
-    F1 --> F2[Query All Invitations]
-    F2 --> F3[Return JSON Response]
+    F --> F1[Validate Invitation]
+    F1 --> F2[Check Invitation Status]
+    F2 --> F3{Valid & Not Redeemed?}
+    F3 -->|No| F4[Return Error HTML]
+    F3 -->|Yes| F5[Get SevenRooms Availability]
+    F5 --> F6[Return Available Times JSON]
     
-    G --> G1[Check Application Status]
-    G1 --> G2[Return Health Status]
+    G --> G1[Validate Reservation Data]
+    G1 --> G2[Create Reservation via SevenRooms API]
+    G2 --> G3{Reservation Success?}
+    G3 -->|No| G4[Return Error HTML]
+    G3 -->|Yes| G5[Mark Invitation as Redeemed]
+    G5 --> G6[Return Confirmation HTML]
     
-    C7 --> H[Client Response]
-    D5 --> H
-    E5 --> H
-    E8 --> H
-    E10 --> H
-    F3 --> H
-    G2 --> H
+    H --> H1[Extract Invitation ID]
+    H1 --> H2[Mark Invitation as Redeemed]
+    H2 --> H3[Return Success JSON]
+    
+    I --> I1[Connect to RDS Database]
+    I1 --> I2[Query All Invitations]
+    I2 --> I3[Return JSON Response]
+    
+    J --> J1[Check Application Status]
+    J1 --> J2[Return Health Status]
+    
+    C8 --> K[Client Response]
+    D5 --> K
+    E5 --> K
+    E8 --> K
+    E10 --> K
+    F4 --> K
+    F6 --> K
+    G4 --> K
+    G6 --> K
+    H3 --> K
+    I3 --> K
+    J2 --> K
     
     style A fill:#e1f5fe
-    style H fill:#e8f5e8
+    style K fill:#e8f5e8
     style C fill:#fff3e0
     style D fill:#fff3e0
     style E fill:#f3e5f5
     style F fill:#e0f2f1
-    style G fill:#e8f5e8
+    style G fill:#c8e6c9
+    style H fill:#fff9c4
+    style I fill:#e0f2f1
+    style J fill:#e8f5e8
 \`\`\`
 
-## 📧 Email Flow
+## 📧 Email & Reservation Flow
 
 \`\`\`mermaid
 sequenceDiagram
@@ -246,6 +316,7 @@ sequenceDiagram
     participant SecretsManager
     participant AWS_SES
     participant Guest
+    participant SevenRooms
     
     Client->>ALB: POST /peoplevine-guest-invite
     ALB->>ECS: Forward Request
@@ -253,21 +324,43 @@ sequenceDiagram
     ECS->>ECS: Generate UUID4
     ECS->>RDS: Store Invitation
     RDS-->>ECS: Confirmation
+    ECS->>SevenRooms: Get Venues List
+    SevenRooms-->>ECS: Venues Data
     ECS->>ECS: Configure Email (using ECS Task Role)
     ECS->>AWS_SES: Send Invitation Email via SES API
     AWS_SES->>Guest: Email with Invitation Link
-    ECS-->>ALB: Success Response
+    ECS-->>ALB: Success Response with Venues
     ALB-->>Client: Success Response
     
     Guest->>ALB: Click Invitation Link
-    ALB->>ECS: Forward Request
+    ALB->>ECS: GET /guest-invite-accept
     ECS->>RDS: Validate Invitation
     RDS-->>ECS: Invitation Details
     ECS->>ECS: Check if Redeemed
-    ECS->>RDS: Mark as Redeemed
+    ECS->>SevenRooms: Get Venues
+    SevenRooms-->>ECS: Venues Data
+    ECS-->>ALB: Reservation Calendar HTML
+    ALB-->>Guest: Display Calendar Widget
+    
+    Guest->>ALB: Select Date & Time
+    ALB->>ECS: GET /api/availability
+    ECS->>RDS: Validate Invitation
+    RDS-->>ECS: Invitation Valid
+    ECS->>SevenRooms: Get Availability
+    SevenRooms-->>ECS: Available Times
+    ECS-->>ALB: Available Times JSON
+    ALB-->>Guest: Display Available Times
+    
+    Guest->>ALB: Submit Reservation Form
+    ALB->>ECS: POST /api/create-reservation
+    ECS->>RDS: Validate Invitation
+    RDS-->>ECS: Invitation Valid
+    ECS->>SevenRooms: Create Reservation
+    SevenRooms-->>ECS: Reservation Confirmation
+    ECS->>RDS: Mark Invitation as Redeemed
     RDS-->>ECS: Confirmation
-    ECS-->>ALB: Acceptance Confirmation
-    ALB-->>Guest: Acceptance Confirmation
+    ECS-->>ALB: Reservation Confirmation HTML
+    ALB-->>Guest: Display Confirmation Page
 \`\`\`
 
 ## 🚀 Infrastructure Components
@@ -415,10 +508,10 @@ aws ecs describe-services --cluster magic-castle-cluster --services magic-castle
 - \`PEOPLEVINE_TOKEN\`: PeopleVine API authentication token
 - \`MY_AUTH_TOKEN\`: Incoming auth token for PeopleVine calls
 - \`MY_AUTH_ID\`: Incoming auth id/username for PeopleVine calls
-- \`SEVENROOMS_CLIENT_ID\`: SevenRooms API client ID
-- \`SEVENROOMS_CLIENT_SECRET\`: SevenRooms API client secret
-- \`SEVENROOMS_HOST\`: SevenRooms API host URL
-- \`SEVENROOMS_VERSION\`: SevenRooms API version
+- \`SEVENROOMS_CLIENT_ID\`: SevenRooms API client ID (required for reservation system)
+- \`SEVENROOMS_CLIENT_SECRET\`: SevenRooms API client secret (required for reservation system)
+- \`SEVENROOMS_HOST\`: SevenRooms API host URL (default: https://api.sevenrooms.com)
+- \`SEVENROOMS_VERSION\`: SevenRooms API version (default: /2_4)
 - \`SEVENROOMS_RESERVATION_WIDGET_URL\`: SevenRooms reservation widget base URL
 - \`DB_HOST\`: Database hostname
 - \`DB_PORT\`: Database port (3306)
@@ -466,6 +559,28 @@ curl -X POST https://guest-reservations.magiccastle-cloud.com/peoplevine-guest-i
   }'
 \`\`\`
 
+### Get Availability
+\`\`\`bash
+curl -X GET "https://guest-reservations.magiccastle-cloud.com/api/availability?invitation_id=550e8400-e29b-41d4-a716-446655440000&date=2025-11-15&party_size=4"
+\`\`\`
+
+### Create Reservation
+\`\`\`bash
+curl -X POST https://guest-reservations.magiccastle-cloud.com/api/create-reservation \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "invitation_id": "550e8400-e29b-41d4-a716-446655440000",
+    "venue_id": "12345",
+    "date": "2025-11-15",
+    "time": "19:00",
+    "party_size": 4,
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "guest@example.com",
+    "phone": "555-555-5555"
+  }'
+\`\`\`
+
 ## 🔄 CI/CD Pipeline
 
 The application supports automated deployment:
@@ -480,6 +595,7 @@ The application supports automated deployment:
 
 - [Infrastructure Documentation](terraform/README.md)
 - [Docker Configuration](docker/README.md)
+- [SevenRooms Integration](SevenRooms/README.md)
 - [Security Best Practices](terraform/SECURITY_GROUP_BEST_PRACTICES.md)
 - [API Documentation](docs/api.md) (if available)
 
