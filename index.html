@@ -17,7 +17,7 @@
 
     const markdown = `# Magic Castle Guest Invitation System
 
-A Flask-based REST API for managing guest invitations in a membership system. This application handles guest invitation creation, email notifications, and invitation acceptance workflows, deployed on AWS using ECS Fargate, RDS MariaDB, and Application Load Balancer.
+A Flask-based REST API (served via Gunicorn) for managing guest invitations in a membership system. This application handles guest invitation creation, email notifications, and invitation acceptance workflows, deployed on AWS using ECS Fargate, RDS MariaDB, and Application Load Balancer.
 
 ## 🏗️ Architecture Overview
 
@@ -41,7 +41,7 @@ graph TB
         
         subgraph "Private Subnets"
             subgraph "ECS Fargate"
-                ECS[Flask Application<br/>Port 5000]
+                ECS[Gunicorn + Flask Application<br/>Port 5000]
             end
             
             subgraph "RDS"
@@ -94,6 +94,7 @@ graph TB
 - **Reservation Creation**: Direct reservation booking through SevenRooms API
 - **AWS Integration**: Secrets Manager, SES, CloudWatch Logs
 - **Production Ready**: HTTPS, health checks, auto-scaling, monitoring
+- **Gunicorn WSGI Runtime**: Multi-worker server handling requests on port 5000
 
 ## 🌐 API Endpoints
 
@@ -437,8 +438,10 @@ For detailed setup instructions, see [terraform/SETUP.md](terraform/SETUP.md).
 
 4. **Run the application**:
    \`\`\`bash
-   python src/mc.py
+   gunicorn --chdir src --bind 0.0.0.0:5000 mc:app
    \`\`\`
+
+   > Tip: Adjust concurrency with `GUNICORN_WORKERS=<count>` before running if you need more or fewer workers.
 
 ### Docker Development
 
@@ -495,9 +498,14 @@ aws ecs describe-services --cluster magic-castle-cluster --services magic-castle
 - \`FLASK_ENV\`: Set to "production"
 - \`SECRETS_MANAGER_ARN\`: ARN of the secrets in AWS Secrets Manager
 - \`IMAGE_VERSION\`: Version tag for the Docker image
-- \`DISABLE_AUTHENTICATION_HEADERS\`: Optional; set to \`true\` for local testing to bypass bearer-token checks
-
-### Secrets (AWS Secrets Manager)
+- \`DISABLE_AUTHENTICATION_HEADERS`: Optional; set to `true` for local testing to bypass bearer-token checks
+- `GUNICORN_WORKERS`: Optional; override Gunicorn worker count (default: 4 in containers)
+- `GUNICORN_LOG_LEVEL`: Optional; override Gunicorn log level (default: `info`)
+- `GUNICORN_TIMEOUT`: Optional; request timeout in seconds (default: 30)
+- `GUNICORN_ACCESSLOG`: Optional; set to `-` (default) for stdout or provide a file path
+- `GUNICORN_ERRORLOG`: Optional; set to `-` (default) for stderr or provide a file path
+ 
+ ### Secrets (AWS Secrets Manager)
 - \`PEOPLEVINE_TOKEN\`: PeopleVine API authentication token
 - \`MY_AUTH_TOKEN\`: Incoming auth token for PeopleVine calls
 - \`MY_ADMIN_AUTH_TOKEN\`: Admin auth token for privileged endpoints
