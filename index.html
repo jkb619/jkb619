@@ -458,7 +458,7 @@ For detailed setup instructions, see [terraform/SETUP.md](terraform/SETUP.md).
    gunicorn --chdir src --bind 0.0.0.0:5000 mc:app
    \`\`\`
 
-   > Tip: Adjust concurrency with `GUNICORN_WORKERS=<count>` before running if you need more or fewer workers.
+   > Tip: Adjust concurrency by setting GUNICORN_WORKERS=<count> before running if you need more or fewer workers.
 
 ### Docker Development
 
@@ -512,15 +512,15 @@ aws ecs describe-services --cluster magic-castle-cluster --services magic-castle
 ## 🔧 Configuration Management
 
 ### Environment Variables (ECS Task)
-- \`FLASK_ENV\`: Set to "production"
-- \`SECRETS_MANAGER_ARN\`: ARN of the secrets in AWS Secrets Manager
-- \`IMAGE_VERSION\`: Version tag for the Docker image
-- \`DISABLE_AUTHENTICATION_HEADERS`: Optional; set to `true` for local testing to bypass bearer-token checks
-- `GUNICORN_WORKERS`: Optional; override Gunicorn worker count (default: 4 in containers)
-- `GUNICORN_LOG_LEVEL`: Optional; override Gunicorn log level (default: `info`)
-- `GUNICORN_TIMEOUT`: Optional; request timeout in seconds (default: 30)
-- `GUNICORN_ACCESSLOG`: Optional; set to `-` (default) for stdout or provide a file path
-- `GUNICORN_ERRORLOG`: Optional; set to `-` (default) for stderr or provide a file path
+- FLASK_ENV: Set to "production"
+- SECRETS_MANAGER_ARN: ARN of the secrets in AWS Secrets Manager
+- IMAGE_VERSION: Version tag for the Docker image
+- DISABLE_AUTHENTICATION_HEADERS: Optional; set to true for local testing to bypass bearer-token checks
+- GUNICORN_WORKERS: Optional; override Gunicorn worker count (default: 4 in containers)
+- GUNICORN_LOG_LEVEL: Optional; override Gunicorn log level (default: info)
+- GUNICORN_TIMEOUT: Optional; request timeout in seconds (default: 30)
+- GUNICORN_ACCESSLOG: Optional; set to - (default) for stdout or provide a file path
+- GUNICORN_ERRORLOG: Optional; set to - (default) for stderr or provide a file path
  
 ### Secrets (AWS Secrets Manager)
 - \`PEOPLEVINE_TOKEN\`: PeopleVine API authentication token
