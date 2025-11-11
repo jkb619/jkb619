@@ -630,8 +630,9 @@ For issues and questions:
 3. Check ECS service status
 4. Verify security group configurations`;
 
+    const html = marked.parse(markdown);
     const container = document.getElementById('content');
-    container.innerHTML = marked.parse(markdown);
+    container.innerHTML = html;
 
     container.querySelectorAll('pre code.language-mermaid').forEach(codeBlock => {
       const wrapper = document.createElement('div');
