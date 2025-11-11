@@ -15,6 +15,23 @@
   <script type="module">
     import { marked } from 'https://cdn.jsdelivr.net/npm/marked@13/+esm';
 
+    const markdown = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Magic Castle Guest Invitation System</title>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'default',
+      securityLevel: 'loose'
+    });
+  </script>
+  <script type="module">
+    import { marked } from 'https://cdn.jsdelivr.net/npm/marked@13/+esm';
+
     const markdown = `# Magic Castle Guest Invitation System
 
 A Flask-based REST API (served via Gunicorn) for managing guest invitations in a membership system. This application handles guest invitation creation, email notifications, and invitation acceptance workflows, deployed on AWS using ECS Fargate, RDS MariaDB, and Application Load Balancer.
@@ -505,7 +522,7 @@ aws ecs describe-services --cluster magic-castle-cluster --services magic-castle
 - `GUNICORN_ACCESSLOG`: Optional; set to `-` (default) for stdout or provide a file path
 - `GUNICORN_ERRORLOG`: Optional; set to `-` (default) for stderr or provide a file path
  
- ### Secrets (AWS Secrets Manager)
+### Secrets (AWS Secrets Manager)
 - \`PEOPLEVINE_TOKEN\`: PeopleVine API authentication token
 - \`MY_AUTH_TOKEN\`: Incoming auth token for PeopleVine calls
 - \`MY_ADMIN_AUTH_TOKEN\`: Admin auth token for privileged endpoints
