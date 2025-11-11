@@ -630,12 +630,18 @@ For issues and questions:
 3. Check ECS service status
 4. Verify security group configurations`;
 
-    const html = marked.parse(markdown);
-    const processed = html.replace(
-      /<pre><code class="language-mermaid">([\\s\\S]*?)<\\/code><\\/pre>/g,
-      (match, content) => `<div class="mermaid">${content.trim()}</div>`
-    );
-    document.getElementById('content').innerHTML = processed;
+    const container = document.getElementById('content');
+    container.innerHTML = marked.parse(markdown);
+
+    container.querySelectorAll('pre code.language-mermaid').forEach(codeBlock => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'mermaid';
+      wrapper.textContent = codeBlock.textContent.trim();
+      const pre = codeBlock.closest('pre');
+      if (pre && pre.parentNode) {
+        pre.parentNode.replaceChild(wrapper, pre);
+      }
+    });
   </script>
   <style>
     body {
