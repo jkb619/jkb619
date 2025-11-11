@@ -3,177 +3,726 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MC Guest Reservation</title>
-
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const contentEl = document.getElementById('content');
-      const hasMarked = typeof window.marked === 'object';
-      const hasMermaid = typeof window.mermaid === 'object';
-
-      if (hasMarked) {
-        marked.setOptions({ breaks: true, gfm: true });
-      }
-
-      if (hasMermaid) {
-        mermaid.initialize({
-          startOnLoad: false,
-          securityLevel: 'loose',
-          flowchart: { htmlLabels: true },
-          theme: 'default',
-          themeVariables: {
-            primaryColor: '#e1f5fe',
-            primaryTextColor: '#000',
-            primaryBorderColor: '#000',
-            lineColor: '#000',
-            secondaryColor: '#fff3e0',
-            tertiaryColor: '#e8f5e8'
-          }
-        });
-      }
-
-      const markdown = "# Magic Castle Guest Invitation System\n\nA Flask-based REST API for managing guest invitations in a membership system. This application handles guest invitation creation, email notifications, and invitation acceptance workflows, deployed on AWS using ECS Fargate, RDS MariaDB, and Application Load Balancer.\n\n## \ud83c\udfd7\ufe0f Architecture Overview\n\nThe application is deployed on AWS with the following architecture:\n\n```mermaid\ngraph TB\n    subgraph \"Internet\"\n        User[User/Client]\n        Guest[Guest User]\n    end\n    \n    subgraph \"AWS Cloud - us-west-1\"\n        subgraph \"Route53\"\n            DNS[guest-reservations.magiccastle-cloud.com]\n        end\n        \n        subgraph \"Public Subnets\"\n            ALB[Application Load Balancer<br/>HTTPS:443]\n        end\n        \n        subgraph \"Private Subnets\"\n            subgraph \"ECS Fargate\"\n                ECS[Flask Application<br/>Port 5000]\n            end\n            \n            subgraph \"RDS\"\n                DB[(MariaDB Database<br/>Port 3306)]\n            end\n            \n            subgraph \"VPC Endpoints\"\n                SM[Secrets Manager<br/>VPC Endpoint]\n            end\n        end\n        \n        subgraph \"AWS Services\"\n            Secrets[AWS Secrets Manager]\n            SES[AWS SES<br/>Email Service]\n            CW[CloudWatch Logs]\n        end\n    end\n    \n    User --> DNS\n    DNS --> ALB\n    ALB --> ECS\n    ECS --> DB\n    ECS --> SM\n    SM --> Secrets\n    ECS --> SES\n    ECS --> CW\n    \n    Guest --> DNS\n    DNS --> ALB\n    ALB --> ECS\n    \n    style User fill:#e1f5fe\n    style Guest fill:#f3e5f5\n    style ECS fill:#fff3e0\n    style DB fill:#e8f5e8\n    style ALB fill:#e0f2f1\n    style Secrets fill:#fce4ec\n```\n\n## \u2728 Features\n\n- **Guest Invitation Management**: Create and manage guest invitations for members\n- **Email Notifications**: Automated email sending via AWS SES\n- **Database Persistence**: MariaDB database for storing invitation data\n- **RESTful API**: Clean REST endpoints for all operations\n- **CORS Support**: Cross-origin resource sharing for web frontend integration\n- **Bulk Operations**: Generate multiple invitations at once\n- **SevenRooms Integration**: Full reservation system integration with SevenRooms API\n- **Reservation Calendar**: Interactive calendar widget for guests to select dates and times\n- **Reservation Creation**: Direct reservation booking through SevenRooms API\n- **AWS Integration**: Secrets Manager, SES, CloudWatch Logs\n- **Production Ready**: HTTPS, health checks, auto-scaling, monitoring\n\n## \ud83c\udf10 API Endpoints\n\n### 1. Health Check\n- **Endpoint**: `GET /health`\n- **Purpose**: Application health monitoring\n- **Response**: \n  ```json\n  {\n    \"status\": \"healthy\"\n  }\n  ```\n\n### 2. Create Guest Invitation\n- **Endpoint**: `POST /peoplevine-guest-invite`\n- **Purpose**: Create a single guest invitation and send email notification\n- **Authentication**: `Authorization: Bearer <MY_AUTH_TOKEN>`\n- **Payload**: \n  ```json\n  {\n    \"member_first_name\": \"Member's first name\",\n    \"member_last_name\": \"Member's last name\",\n    \"memberID\": \"Member's unique ID\",\n    \"guest_email\": \"Guest's email address\"\n  }\n  ```\n\n### 3. Generate Multiple Invitations\n- **Endpoint**: `POST /peoplevine-generate-invitations`\n- **Purpose**: Generate multiple invitation IDs for bulk operations\n- **Authentication**: `Authorization: Bearer <MY_ADMIN_AUTH_TOKEN>`\n- **Payload**:\n  ```json\n  {\n    \"members\": [\n      {\n        \"memberID\": \"member_id_1\",\n        \"member_first_name\": \"Magic\",\n        \"member_last_name\": \"Castle\",\n        \"numInvites\": 5\n      }\n    ]\n  }\n  ```\n- **Defaults**:\n  - `memberID` defaults to `\"0\"` when omitted.\n  - `member_first_name` defaults to `\"Magic\"`; `member_last_name` defaults to `\"Castle\"`.\n  - Bulk invitations are stored with `guest_email = null` until a guest supplies their details.\n\n### 4. Accept Guest Invitation\n- **Endpoint**: `GET /guest-invite-accept`\n- **Purpose**: Process guest invitation acceptance and display reservation calendar\n- **Parameters**: `invitation_id`, `MemberID`, `guest_email`\n- **Response**: HTML page with reservation calendar widget\n\n### 5. Create Reservation\n- **Endpoint**: `POST /api/create-reservation`\n- **Purpose**: Create a reservation via SevenRooms API and mark invitation as redeemed\n- **Payload**:\n  ```json\n  {\n    \"invitation_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"venue_id\": \"12345\",\n    \"date\": \"2025-11-15\",\n    \"time\": \"19:00\",\n    \"party_size\": 4,\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\",\n    \"email\": \"guest@example.com\",\n    \"phone\": \"555-555-5555\"\n  }\n  ```\n- **Response**: HTML confirmation page with reservation details\n\n### 6. SevenRooms Callback\n- **Endpoint**: `POST /sevenrooms_callback_post_reservation`\n- **Purpose**: Webhook callback from SevenRooms after reservation is made\n- **Authentication**: `Authorization: Bearer <MY_AUTH_TOKEN>`\n- **Response**: JSON confirmation of invitation redemption\n\n### 7. Public Invitation Redemption\n- **Endpoints**: `GET /public-invitation-redemption`, `POST /public-invitation-redemption`\n- **Purpose**: Allow guests to enter an invitation ID, email address, and last name to receive a fresh invitation email.\n- **Response**: Branded HTML confirmation/notice page.\n\n### 8. List All Invitations\n- **Endpoint**: `GET /guest-invites`\n- **Purpose**: Retrieve all guest invitations (administrative)\n- **Authentication**: `Authorization: Bearer <MY_ADMIN_AUTH_TOKEN>`\n\n### 9. Admin Dashboard\n- **Endpoint**: `GET /dashboard`\n- **Purpose**: Render an HTML dashboard with invitation metrics (created, redeemed, unredeemed, reservations made)\n- **Authentication**: `Authorization: Bearer <MY_ADMIN_AUTH_TOKEN>`\n- **Features**: Timeframe filter (1 day/week/month/year), live UTC clock reference, and toggle between tabular metrics and time-series graphs\n- **Response**: HTML page with aggregated counts or charts depending on selected view\n\n## \ud83d\uddc4\ufe0f Database Schema\n\nThe application uses a single table `guest_invites` with the following structure:\n\n| Column | Type | Description |\n|--------|------|-------------|\n| invitation_id | VARCHAR(36) | Primary key, UUID4 identifier |\n| guest_email | VARCHAR(255) NULL | Guest's email address (nullable) |\n| guest_last_name | VARCHAR(255) NULL | Guest's last name (nullable) |\n| member_id | VARCHAR(255) | ID of the inviting member |\n| member_first_name | VARCHAR(255) NULL | Member first name |\n| member_last_name | VARCHAR(255) NULL | Member last name |\n| redeemed | BOOLEAN | Whether invitation has been redeemed |\n| created_date | DATETIME | Date and time when invitation was created |\n| redeemed_date | DATETIME | Date and time when invitation was redeemed |\n| guest_clicked_date | DATETIME NULL | Timestamp recorded when guest clicks the invite link |\n| reference_code | VARCHAR(128) NULL | SevenRooms reservation reference code |\n\n## \ud83d\udd04 Application Flow\n\n```mermaid\ngraph TD\n    A[Client Request] --> B{Request Type}\n    \n    B -->|POST /peoplevine-guest-invite| C[Create Single Invitation]\n    B -->|POST /peoplevine-generate-invitations| D[Generate Multiple Invitations]\n    B -->|GET /guest-invite-accept| E[Accept Invitation]\n    B -->|POST /api/create-reservation| G[Create Reservation]\n    B -->|POST /sevenrooms_callback_post_reservation| H[SevenRooms Callback]\n    B -->|GET /public-invitation-redemption| I[Render Manual Redemption Form]\n    B -->|POST /public-invitation-redemption| J[Process Manual Redemption]\n    B -->|GET /guest-invites| K[List All Invitations]\n    B -->|GET /health| L[Health Check]\n    \n    C --> C1[Validate Input Data]\n    C1 --> C2[Generate UUID4 Invitation ID]\n    C2 --> C3[Store in RDS Database]\n    C3 --> C4[Get SevenRooms Venues]\n    C4 --> C5[Get SES Credentials from Secrets Manager]\n    C5 --> C6[Create Email Message]\n    C6 --> C7[Send via AWS SES]\n    C7 --> C8[Return Success with Venues]\n    \n    D --> D1[Validate Member Data]\n    D1 --> D2[Loop Through Members]\n    D2 --> D3[Generate Multiple UUIDs]\n    D3 --> D4[Store with Pending Guest Details]\n    D4 --> D5[Return Generated IDs]\n    \n    E --> E1[Extract URL Parameters]\n    E1 --> E2[Validate Parameters]\n    E2 --> E3[Check Invitation Exists in RDS]\n    E3 --> E4{Invitation Valid?}\n    E4 -->|No| E5[Return Error 404 HTML]\n    E4 -->|Yes| E6[Check if Already Redeemed]\n    E6 --> E7{Already Redeemed?}\n    E7 -->|Yes| E8[Return Error 400 HTML]\n    E7 -->|No| E9[Get SevenRooms Venues]\n    E9 --> E10[Render Reservation Calendar HTML]\n    \n    G --> G1[Validate Reservation Data]\n    G1 --> G2[Create Reservation via SevenRooms API]\n    G2 --> G3{Reservation Success?}\n    G3 -->|No| G4[Return Error HTML]\n    G3 -->|Yes| G5[Mark Invitation as Redeemed]\n    G5 --> G6[Return Confirmation HTML]\n    \n    H --> H1[Extract Invitation ID]\n    H1 --> H2[Match to Pending Invitation]\n    H2 --> H3[Mark Invitation as Redeemed]\n    H3 --> H4[Return Success JSON]\n    \n    I --> I1[Serve HTML Form]\n    I1 --> I2[Prompt for Invitation Details]\n    \n    J --> J1[Validate Submission]\n    J1 --> J2[Lookup Invitation Record]\n    J2 --> J3[Update Email & Last Name]\n    J3 --> J4[Send Invitation Email]\n    J4 --> J5[Render Confirmation HTML]\n    \n    K --> K1[Connect to RDS Database]\n    K1 --> K2[Query All Invitations]\n    K2 --> K3[Return JSON Response]\n    \n    L --> L1[Check Application Status]\n    L1 --> L2[Return Health Status]\n    \n    C8 --> Z[Client Response]\n    D5 --> Z\n    E5 --> Z\n    E8 --> Z\n    E10 --> Z\n    G4 --> Z\n    G6 --> Z\n    H4 --> Z\n    J5 --> Z\n    K3 --> Z\n    L2 --> Z\n    \n    style A fill:#e1f5fe\n    style Z fill:#e8f5e8\n    style C fill:#fff3e0\n    style D fill:#fff3e0\n    style E fill:#f3e5f5\n    style G fill:#c8e6c9\n    style H fill:#fff9c4\n    style I fill:#ede7f6\n    style J fill:#ede7f6\n    style K fill:#e0f2f1\n    style L fill:#e8f5e8\n```\n\n## \ud83d\udce7 Email & Reservation Flow\n\n```mermaid\nsequenceDiagram\n    participant Client\n    participant ALB\n    participant ECS\n    participant RDS\n    participant SecretsManager\n    participant AWS_SES\n    participant Guest\n    participant SevenRooms\n    \n    Client->>ALB: POST /peoplevine-guest-invite\n    ALB->>ECS: Forward Request\n    ECS->>ECS: Validate Input Data\n    ECS->>ECS: Generate UUID4\n    ECS->>RDS: Store Invitation\n    RDS-->>ECS: Confirmation\n    ECS->>SevenRooms: Get Venues List\n    SevenRooms-->>ECS: Venues Data\n    ECS->>ECS: Configure Email (using ECS Task Role)\n    ECS->>AWS_SES: Send Invitation Email via SES API\n    AWS_SES->>Guest: Email with Invitation Link\n    ECS-->>ALB: Success Response with Venues\n    ALB-->>Client: Success Response\n    \n    Guest->>ALB: Click Invitation Link\n    ALB->>ECS: GET /guest-invite-accept\n    ECS->>RDS: Validate Invitation\n    RDS-->>ECS: Invitation Details\n    ECS->>ECS: Check if Redeemed\n    ECS->>SevenRooms: Get Venues\n    SevenRooms-->>ECS: Venues Data\n    ECS-->>ALB: Reservation Calendar HTML\n    ALB-->>Guest: Display Calendar Widget\n    \n    Guest->>ALB: Submit Reservation Form\n    ALB->>ECS: POST /api/create-reservation\n    ECS->>RDS: Validate Invitation\n    RDS-->>ECS: Invitation Valid\n    ECS->>SevenRooms: Create Reservation\n    SevenRooms-->>ECS: Reservation Confirmation\n    ECS->>RDS: Mark Invitation as Redeemed\n    RDS-->>ECS: Confirmation\n    ECS-->>ALB: Reservation Confirmation HTML\n    ALB-->>Guest: Display Confirmation Page\n```\n\n## \ud83d\ude80 Infrastructure Components\n\n### Core Services\n- **ECS Fargate (Spot)**: Containerized Flask application running on cost-optimized Fargate Spot capacity\n- **RDS MariaDB**: Database for invitation storage\n- **Application Load Balancer**: HTTPS termination and routing\n- **Route53**: DNS management for custom domain\n\n### Security & Secrets\n- **AWS Secrets Manager**: Secure storage of API tokens and credentials\n- **VPC Endpoints**: Private connectivity to AWS services\n- **Security Groups**: Network-level access control\n- **IAM Roles**: Service-to-service authentication\n\n### Monitoring & Logging\n- **CloudWatch Logs**: Application and infrastructure logging\n- **ECS Service Discovery**: Automatic service registration\n- **Health Checks**: Application and infrastructure monitoring\n\n## \ud83d\udee0\ufe0f Development & Deployment\n\n### First-Time Setup\n\n**IMPORTANT**: For first-time deployments, you must deploy the KMS key first and configure SOPS:\n\n1. **Deploy KMS Key** (required for secrets encryption):\n   ```bash\n   cd terraform/kms\n   terragrunt apply\n   cd ..\n   ```\n\n2. **Get KMS Key ARN and configure SOPS**:\n   ```bash\n   cd kms && terragrunt output key_arn && cd ..\n   # Update terraform/secrets/.sops.yaml with the key ARN\n   ```\n\n3. **Create and encrypt secrets**:\n   ```bash\n   sops terraform/secrets/config.yaml\n   ```\n\nFor detailed setup instructions, see [terraform/SETUP.md](terraform/SETUP.md).\n\n### Prerequisites\n- Python 3.13+\n- Docker\n- AWS CLI configured\n- Terragrunt\n- Terraform\n- SOPS (for secrets management)\n\n### Local Development\n\n1. **Clone the repository**:\n   ```bash\n   git clone <repository-url>\n   cd mc-guest-reservation\n   ```\n\n2. **Set up environment variables**:\n   ```bash\n   export DB_HOST=localhost\n   export DB_USER=root\n   export DB_PASSWORD=your_password\n   export DB_NAME=guest_reservations\n   export PEOPLEVINE_TOKEN=your_token\n   export SEVENROOMS_CLIENT_ID=your_client_id\n  export SEVENROOMS_CLIENT_SECRET=your_client_secret\n  export SEVENROOMS_HOST=https://api.sevenrooms.com\n  export SEVENROOMS_VERSION=/2_4\n  export SEVENROOMS_VENUE_ID=your_venue_id\n  export SEVENROOMS_RESERVATION_WIDGET_URL=https://demo.sevenrooms.com/reservations/docs-ny\n  export SEVENROOMS_WEBHOOK_CLIENT_ID=your_webhook_client_id\n   ```\n\n3. **Install dependencies**:\n   ```bash\n   pip install -r docker/requirements.txt\n   ```\n\n4. **Run the application**:\n   ```bash\n   python src/mc.py\n   ```\n\n### Docker Development\n\n```bash\n# Build the image\nmake build\n\n# Run locally\nmake dev\n\n# Check health\nmake health\n\n# View logs\nmake logs\n```\n\n### Production Deployment\n\nThe application is deployed using Terragrunt on AWS:\n\n```bash\n# Deploy all infrastructure\nterragrunt run-all apply\n\n# Build and push Docker image\nmake deploy\n\n# Check deployment status\naws ecs describe-services --cluster magic-castle-cluster --services magic-castle-service\n```\n\n## \ud83d\udd12 Security Features\n\n- **HTTPS Only**: All traffic encrypted in transit\n- **Private Subnets**: Database and application in private networks\n- **Secrets Management**: API tokens stored in AWS Secrets Manager\n- **IAM Roles**: Least-privilege access for all services\n- **Security Groups**: Network-level access control\n- **VPC Endpoints**: Private connectivity to AWS services\n- **Encryption**: Data encrypted at rest and in transit\n\n## \ud83d\udcca Monitoring & Observability\n\n- **Health Checks**: Application health monitoring at `/health`\n- **CloudWatch Logs**: Centralized logging for all components\n- **ECS Service Discovery**: Automatic service registration\n- **ALB Metrics**: Load balancer performance monitoring\n- **RDS Monitoring**: Database performance insights\n\n## \ud83d\udd27 Configuration Management\n\n### Environment Variables (ECS Task)\n- `FLASK_ENV`: Set to \"production\"\n- `SECRETS_MANAGER_ARN`: ARN of the secrets in AWS Secrets Manager\n- `IMAGE_VERSION`: Version tag for the Docker image\n- `DISABLE_AUTHENTICATION_HEADERS`: Optional; set to `true` for local testing to bypass bearer-token checks\n\n### Secrets (AWS Secrets Manager)\n- `PEOPLEVINE_TOKEN`: PeopleVine API authentication token\n- `MY_AUTH_TOKEN`: Incoming auth token for PeopleVine calls\n- `MY_ADMIN_AUTH_TOKEN`: Admin auth token for privileged endpoints\n- `MY_AUTH_ID`: Incoming auth id/username for PeopleVine calls\n- `SEVENROOMS_CLIENT_ID`: SevenRooms API client ID (required for reservation system)\n- `SEVENROOMS_CLIENT_SECRET`: SevenRooms API client secret (required for reservation system)\n- `SEVENROOMS_HOST`: SevenRooms API host URL (default: https://api.sevenrooms.com)\n- `SEVENROOMS_VERSION`: SevenRooms API version (default: /2_4)\n- `SEVENROOMS_VENUE_ID`: SevenRooms venue identifier used when launching the widget\n- `SEVENROOMS_WEBHOOK_CLIENT_ID`: SevenRooms client token used for widget callbacks\n- `SEVENROOMS_RESERVATION_WIDGET_URL`: SevenRooms reservation widget base URL\n- `DB_HOST`: Database hostname\n- `DB_PORT`: Database port (3306)\n- `DB_NAME`: Database name\n- `DB_USER`: Database username\n- `DB_PASSWORD`: Database password\n\n**Note**: SES authentication is handled via ECS task role - no SMTP credentials needed.\n\n**Secrets Update Workflow**: When modifying `terraform/secrets/config.yaml`, be sure to rerun the corresponding infrastructure updates (e.g. `terragrunt apply` for the secrets-manager module) and redeploy the ECS service so tasks pick up the refreshed secrets.\n\n## \ud83d\udea8 Error Handling\n\nThe application includes comprehensive error handling for:\n- Database connection failures\n- Invalid input data\n- Email sending failures\n- Duplicate invitation usage\n- Missing required parameters\n- AWS service errors\n- Network connectivity issues\n\n## \ud83d\udcc8 Performance & Scaling\n\n- **ECS Fargate (Spot)**: Serverless container platform leveraging Fargate Spot capacity for cost savings\n- **Auto Scaling**: Automatic scaling based on CPU/memory usage\n- **Load Balancing**: ALB distributes traffic across multiple tasks\n- **Database Optimization**: RDS with connection pooling\n- **Caching**: Application-level caching for frequently accessed data\n\n## \ud83e\uddea Testing\n\n### Health Check\n```bash\ncurl https://guest-reservations.magiccastle-cloud.com/health\n```\n\n### Create Invitation\n```bash\ncurl -X POST https://guest-reservations.magiccastle-cloud.com/peoplevine-guest-invite \\\n  -H \"Content-Type: application/json\" \\\n  -H \"Authorization: Bearer $MY_AUTH_TOKEN\" \\\n  -d '{\n    \"member_first_name\": \"John\",\n    \"member_last_name\": \"Doe\",\n    \"memberID\": \"12345\",\n    \"guest_email\": \"guest@example.com\"\n  }'\n```\n\n### Create Reservation\n```bash\ncurl -X POST https://guest-reservations.magiccastle-cloud.com/api/create-reservation \\\n  -H \"Content-Type: application/json\" \\\n  -H \"Authorization: Bearer $MY_AUTH_TOKEN\" \\\n  -d '{\n    \"invitation_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"venue_id\": \"12345\",\n    \"date\": \"2025-11-15\",\n    \"time\": \"19:00\",\n    \"party_size\": 4,\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\",\n    \"email\": \"guest@example.com\",\n    \"phone\": \"555-555-5555\"\n  }'\n```\n\n### Manual Invitation Redemption (JSON helper)\n```bash\ncurl -X POST https://guest-reservations.magiccastle-cloud.com/public-invitation-redemption \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"invitation_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"guest_email\": \"updated-guest@example.com\",\n    \"guest_last_name\": \"Guest\"\n  }'\n```\n> Tip: The same endpoint is accessible via browser at `/public-invitation-redemption`.\n\n### Local Test Drivers\n- `test.py`: Script used for local regression/automation testing.\n- `test-drivers/` directory hosts the Flask-based test driver (`test-driver.py`) and accompanying HTML (`test-driver.html`) for manual end-to-end testing of invitation workflows. Launch via `python3 ./test-drivers/test-driver.py` or run `./test.sh`.\n\n## \ud83d\udd04 CI/CD Pipeline\n\nThe application supports automated deployment:\n\n1. **Code Push**: Triggered on main branch commits\n2. **Docker Build**: Automated image building and testing\n3. **ECR Push**: Image pushed to Amazon ECR\n4. **ECS Update**: Service updated with new image\n5. **Health Check**: Automated health verification\n\n## \ud83d\udcda Additional Documentation\n\n- [Infrastructure Documentation](terraform/README.md)\n- [Docker Configuration](docker/README.md)\n- [SevenRooms Integration](SevenRooms/README.md)\n- [Security Best Practices](terraform/SECURITY_GROUP_BEST_PRACTICES.md)\n- [API Documentation](docs/api.md) (if available)\n\n## \ud83e\udd1d Contributing\n\n1. Fork the repository\n2. Create a feature branch\n3. Make your changes\n4. Test thoroughly\n5. Submit a pull request\n\n## \ud83d\udcc4 License\n\nThis project is part of the Magic Castle membership system.\n\n## \ud83c\udd98 Support\n\nFor issues and questions:\n1. Check the [troubleshooting guide](terraform/README.md#troubleshooting)\n2. Review CloudWatch logs\n3. Check ECS service status\n4. Verify security group configurations";
-      const html = hasMarked ? marked.parse(markdown) : markdown;
-      const processed = html.replace(
-        /<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g,
-        (_match, diagram) => `
-          <div class="mermaid">${diagram.trim()}</div>
-        `
-      );
-
-      contentEl.innerHTML = processed;
-
-      if (hasMermaid) {
-        mermaid.init(undefined, contentEl.querySelectorAll('.mermaid'));
-      }
+  <title>Magic Castle Guest Invitation System</title>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'default',
+      securityLevel: 'loose'
     });
   </script>
+  <script type="module">
+    import { marked } from 'https://cdn.jsdelivr.net/npm/marked@13/+esm';
 
+    const markdown = `# Magic Castle Guest Invitation System
+
+A Flask-based REST API for managing guest invitations in a membership system. This application handles guest invitation creation, email notifications, and invitation acceptance workflows, deployed on AWS using ECS Fargate, RDS MariaDB, and Application Load Balancer.
+
+## 🏗️ Architecture Overview
+
+The application is deployed on AWS with the following architecture:
+
+\`\`\`mermaid
+graph TB
+    subgraph "Internet"
+        User[User/Client]
+        Guest[Guest User]
+    end
+    
+    subgraph "AWS Cloud - us-west-1"
+        subgraph "Route53"
+            DNS[guest-reservations.magiccastle-cloud.com]
+        end
+        
+        subgraph "Public Subnets"
+            ALB[Application Load Balancer<br/>HTTPS:443]
+        end
+        
+        subgraph "Private Subnets"
+            subgraph "ECS Fargate"
+                ECS[Flask Application<br/>Port 5000]
+            end
+            
+            subgraph "RDS"
+                DB[(MariaDB Database<br/>Port 3306)]
+            end
+            
+            subgraph "VPC Endpoints"
+                SM[Secrets Manager<br/>VPC Endpoint]
+            end
+        end
+        
+        subgraph "AWS Services"
+            Secrets[AWS Secrets Manager]
+            SES[AWS SES<br/>Email Service]
+            CW[CloudWatch Logs]
+        end
+    end
+    
+    User --> DNS
+    DNS --> ALB
+    ALB --> ECS
+    ECS --> DB
+    ECS --> SM
+    SM --> Secrets
+    ECS --> SES
+    ECS --> CW
+    
+    Guest --> DNS
+    DNS --> ALB
+    ALB --> ECS
+    
+    style User fill:#e1f5fe
+    style Guest fill:#f3e5f5
+    style ECS fill:#fff3e0
+    style DB fill:#e8f5e8
+    style ALB fill:#e0f2f1
+    style Secrets fill:#fce4ec
+\`\`\`
+
+## ✨ Features
+
+- **Guest Invitation Management**: Create and manage guest invitations for members
+- **Email Notifications**: Automated email sending via AWS SES
+- **Database Persistence**: MariaDB database for storing invitation data
+- **RESTful API**: Clean REST endpoints for all operations
+- **CORS Support**: Cross-origin resource sharing for web frontend integration
+- **Bulk Operations**: Generate multiple invitations at once
+- **SevenRooms Integration**: Full reservation system integration with SevenRooms API
+- **Reservation Calendar**: Interactive calendar widget for guests to select dates and times
+- **Reservation Creation**: Direct reservation booking through SevenRooms API
+- **AWS Integration**: Secrets Manager, SES, CloudWatch Logs
+- **Production Ready**: HTTPS, health checks, auto-scaling, monitoring
+
+## 🌐 API Endpoints
+
+### 1. Health Check
+- **Endpoint**: \`GET /health\`
+- **Purpose**: Application health monitoring
+- **Response**: 
+  \`\`\`json
+  {
+    "status": "healthy"
+  }
+  \`\`\`
+
+### 2. Create Guest Invitation
+- **Endpoint**: \`POST /peoplevine-guest-invite\`
+- **Purpose**: Create a single guest invitation and send email notification
+- **Authentication**: \`Authorization: Bearer <MY_AUTH_TOKEN>\`
+- **Payload**: 
+  \`\`\`json
+  {
+    "member_first_name": "Member's first name",
+    "member_last_name": "Member's last name",
+    "memberID": "Member's unique ID",
+    "guest_email": "Guest's email address"
+  }
+  \`\`\`
+
+### 3. Generate Multiple Invitations
+- **Endpoint**: \`POST /peoplevine-generate-invitations\`
+- **Purpose**: Generate multiple invitation IDs for bulk operations
+- **Authentication**: \`Authorization: Bearer <MY_ADMIN_AUTH_TOKEN>\`
+- **Payload**:
+  \`\`\`json
+  {
+    "members": [
+      {
+        "memberID": "member_id_1",
+        "member_first_name": "Magic",
+        "member_last_name": "Castle",
+        "numInvites": 5
+      }
+    ]
+  }
+  \`\`\`
+- **Defaults**:
+  - \`memberID\` defaults to \`"0"\` when omitted.
+  - \`member_first_name\` defaults to \`"Magic"\`; \`member_last_name\` defaults to \`"Castle"\`.
+  - Bulk invitations are stored with \`guest_email = null\` until a guest supplies their details.
+
+### 4. Accept Guest Invitation
+- **Endpoint**: \`GET /guest-invite-accept\`
+- **Purpose**: Process guest invitation acceptance and display reservation calendar
+- **Parameters**: \`invitation_id\`, \`MemberID\`, \`guest_email\`
+- **Response**: HTML page with reservation calendar widget
+
+### 5. Create Reservation
+- **Endpoint**: \`POST /api/create-reservation\`
+- **Purpose**: Create a reservation via SevenRooms API and mark invitation as redeemed
+- **Payload**:
+  \`\`\`json
+  {
+    "invitation_id": "550e8400-e29b-41d4-a716-446655440000",
+    "venue_id": "12345",
+    "date": "2025-11-15",
+    "time": "19:00",
+    "party_size": 4,
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "guest@example.com",
+    "phone": "555-555-5555"
+  }
+  \`\`\`
+- **Response**: HTML confirmation page with reservation details
+
+### 6. SevenRooms Callback
+- **Endpoint**: \`POST /sevenrooms_callback_post_reservation\`
+- **Purpose**: Webhook callback from SevenRooms after reservation is made
+- **Authentication**: \`Authorization: Bearer <MY_AUTH_TOKEN>\`
+- **Response**: JSON confirmation of invitation redemption
+
+### 7. Public Invitation Redemption
+- **Endpoints**: \`GET /public-invitation-redemption\`, \`POST /public-invitation-redemption\`
+- **Purpose**: Allow guests to enter an invitation ID, email address, and last name to receive a fresh invitation email.
+- **Response**: Branded HTML confirmation/notice page.
+
+### 8. List All Invitations
+- **Endpoint**: \`GET /guest-invites\`
+- **Purpose**: Retrieve all guest invitations (administrative)
+- **Authentication**: \`Authorization: Bearer <MY_ADMIN_AUTH_TOKEN>\`
+
+### 9. Admin Dashboard
+- **Endpoint**: \`GET /dashboard\`
+- **Purpose**: Render an HTML dashboard with invitation metrics (created, redeemed, unredeemed, reservations made)
+- **Authentication**: \`Authorization: Bearer <MY_ADMIN_AUTH_TOKEN>\`
+- **Features**: Timeframe filter (1 day/week/month/year), live UTC clock reference, and toggle between tabular metrics and time-series graphs
+- **Response**: HTML page with aggregated counts or charts depending on selected view
+
+## 🗄️ Database Schema
+
+The application uses a single table \`guest_invites\` with the following structure:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| invitation_id | VARCHAR(36) | Primary key, UUID4 identifier |
+| guest_email | VARCHAR(255) NULL | Guest's email address (nullable) |
+| guest_last_name | VARCHAR(255) NULL | Guest's last name (nullable) |
+| member_id | VARCHAR(255) | ID of the inviting member |
+| member_first_name | VARCHAR(255) NULL | Member first name |
+| member_last_name | VARCHAR(255) NULL | Member last name |
+| redeemed | BOOLEAN | Whether invitation has been redeemed |
+| created_date | DATETIME | Date and time when invitation was created |
+| redeemed_date | DATETIME | Date and time when invitation was redeemed |
+| guest_clicked_date | DATETIME NULL | Timestamp recorded when guest clicks the invite link |
+| reference_code | VARCHAR(128) NULL | SevenRooms reservation reference code |
+
+## 🔄 Application Flow
+
+\`\`\`mermaid
+graph TD
+    A[Client Request] --> B{Request Type}
+    
+    B -->|POST /peoplevine-guest-invite| C[Create Single Invitation]
+    B -->|POST /peoplevine-generate-invitations| D[Generate Multiple Invitations]
+    B -->|GET /guest-invite-accept| E[Accept Invitation]
+    B -->|POST /api/create-reservation| G[Create Reservation]
+    B -->|POST /sevenrooms_callback_post_reservation| H[SevenRooms Callback]
+    B -->|GET /public-invitation-redemption| I[Render Manual Redemption Form]
+    B -->|POST /public-invitation-redemption| J[Process Manual Redemption]
+    B -->|GET /guest-invites| K[List All Invitations]
+    B -->|GET /health| L[Health Check]
+    
+    C --> C1[Validate Input Data]
+    C1 --> C2[Generate UUID4 Invitation ID]
+    C2 --> C3[Store in RDS Database]
+    C3 --> C4[Get SevenRooms Venues]
+    C4 --> C5[Get SES Credentials from Secrets Manager]
+    C5 --> C6[Create Email Message]
+    C6 --> C7[Send via AWS SES]
+    C7 --> C8[Return Success with Venues]
+    
+    D --> D1[Validate Member Data]
+    D1 --> D2[Loop Through Members]
+    D2 --> D3[Generate Multiple UUIDs]
+    D3 --> D4[Store with Pending Guest Details]
+    D4 --> D5[Return Generated IDs]
+    
+    E --> E1[Extract URL Parameters]
+    E1 --> E2[Validate Parameters]
+    E2 --> E3[Check Invitation Exists in RDS]
+    E3 --> E4{Invitation Valid?}
+    E4 -->|No| E5[Return Error 404 HTML]
+    E4 -->|Yes| E6[Check if Already Redeemed]
+    E6 --> E7{Already Redeemed?}
+    E7 -->|Yes| E8[Return Error 400 HTML]
+    E7 -->|No| E9[Get SevenRooms Venues]
+    E9 --> E10[Render Reservation Calendar HTML]
+    
+    G --> G1[Validate Reservation Data]
+    G1 --> G2[Create Reservation via SevenRooms API]
+    G2 --> G3{Reservation Success?}
+    G3 -->|No| G4[Return Error HTML]
+    G3 -->|Yes| G5[Mark Invitation as Redeemed]
+    G5 --> G6[Return Confirmation HTML]
+    
+    H --> H1[Extract Invitation ID]
+    H1 --> H2[Match to Pending Invitation]
+    H2 --> H3[Mark Invitation as Redeemed]
+    H3 --> H4[Return Success JSON]
+    
+    I --> I1[Serve HTML Form]
+    I1 --> I2[Prompt for Invitation Details]
+    
+    J --> J1[Validate Submission]
+    J1 --> J2[Lookup Invitation Record]
+    J2 --> J3[Update Email & Last Name]
+    J3 --> J4[Send Invitation Email]
+    J4 --> J5[Render Confirmation HTML]
+    
+    K --> K1[Connect to RDS Database]
+    K1 --> K2[Query All Invitations]
+    K2 --> K3[Return JSON Response]
+    
+    L --> L1[Check Application Status]
+    L1 --> L2[Return Health Status]
+    
+    C8 --> Z[Client Response]
+    D5 --> Z
+    E5 --> Z
+    E8 --> Z
+    E10 --> Z
+    G4 --> Z
+    G6 --> Z
+    H4 --> Z
+    J5 --> Z
+    K3 --> Z
+    L2 --> Z
+    
+    style A fill:#e1f5fe
+    style Z fill:#e8f5e8
+    style C fill:#fff3e0
+    style D fill:#fff3e0
+    style E fill:#f3e5f5
+    style G fill:#c8e6c9
+    style H fill:#fff9c4
+    style I fill:#ede7f6
+    style J fill:#ede7f6
+    style K fill:#e0f2f1
+    style L fill:#e8f5e8
+\`\`\`
+
+## 📧 Email & Reservation Flow
+
+\`\`\`mermaid
+sequenceDiagram
+    participant Client
+    participant ALB
+    participant ECS
+    participant RDS
+    participant SecretsManager
+    participant AWS_SES
+    participant Guest
+    participant SevenRooms
+    
+    Client->>ALB: POST /peoplevine-guest-invite
+    ALB->>ECS: Forward Request
+    ECS->>ECS: Validate Input Data
+    ECS->>ECS: Generate UUID4
+    ECS->>RDS: Store Invitation
+    RDS-->>ECS: Confirmation
+    ECS->>SevenRooms: Get Venues List
+    SevenRooms-->>ECS: Venues Data
+    ECS->>ECS: Configure Email (using ECS Task Role)
+    ECS->>AWS_SES: Send Invitation Email via SES API
+    AWS_SES->>Guest: Email with Invitation Link
+    ECS-->>ALB: Success Response with Venues
+    ALB-->>Client: Success Response
+    
+    Guest->>ALB: Click Invitation Link
+    ALB->>ECS: GET /guest-invite-accept
+    ECS->>RDS: Validate Invitation
+    RDS-->>ECS: Invitation Details
+    ECS->>ECS: Check if Redeemed
+    ECS->>SevenRooms: Get Venues
+    SevenRooms-->>ECS: Venues Data
+    ECS-->>ALB: Reservation Calendar HTML
+    ALB-->>Guest: Display Calendar Widget
+    
+    Guest->>ALB: Submit Reservation Form
+    ALB->>ECS: POST /api/create-reservation
+    ECS->>RDS: Validate Invitation
+    RDS-->>ECS: Invitation Valid
+    ECS->>SevenRooms: Create Reservation
+    SevenRooms-->>ECS: Reservation Confirmation
+    ECS->>RDS: Mark Invitation as Redeemed
+    RDS-->>ECS: Confirmation
+    ECS-->>ALB: Reservation Confirmation HTML
+    ALB-->>Guest: Display Confirmation Page
+\`\`\`
+
+## 🚀 Infrastructure Components
+
+### Core Services
+- **ECS Fargate (Spot)**: Containerized Flask application running on cost-optimized Fargate Spot capacity
+- **RDS MariaDB**: Database for invitation storage
+- **Application Load Balancer**: HTTPS termination and routing
+- **Route53**: DNS management for custom domain
+
+### Security & Secrets
+- **AWS Secrets Manager**: Secure storage of API tokens and credentials
+- **VPC Endpoints**: Private connectivity to AWS services
+- **Security Groups**: Network-level access control
+- **IAM Roles**: Service-to-service authentication
+
+### Monitoring & Logging
+- **CloudWatch Logs**: Application and infrastructure logging
+- **ECS Service Discovery**: Automatic service registration
+- **Health Checks**: Application and infrastructure monitoring
+
+## 🛠️ Development & Deployment
+
+### First-Time Setup
+
+**IMPORTANT**: For first-time deployments, you must deploy the KMS key first and configure SOPS:
+
+1. **Deploy KMS Key** (required for secrets encryption):
+   \`\`\`bash
+   cd terraform/kms
+   terragrunt apply
+   cd ..
+   \`\`\`
+
+2. **Get KMS Key ARN and configure SOPS**:
+   \`\`\`bash
+   cd kms && terragrunt output key_arn && cd ..
+   # Update terraform/secrets/.sops.yaml with the key ARN
+   \`\`\`
+
+3. **Create and encrypt secrets**:
+   \`\`\`bash
+   sops terraform/secrets/config.yaml
+   \`\`\`
+
+For detailed setup instructions, see [terraform/SETUP.md](terraform/SETUP.md).
+
+### Prerequisites
+- Python 3.13+
+- Docker
+- AWS CLI configured
+- Terragrunt
+- Terraform
+- SOPS (for secrets management)
+
+### Local Development
+
+1. **Clone the repository**:
+   \`\`\`bash
+   git clone <repository-url>
+   cd mc-guest-reservation
+   \`\`\`
+
+2. **Set up environment variables**:
+   \`\`\`bash
+   export DB_HOST=localhost
+   export DB_USER=root
+   export DB_PASSWORD=your_password
+   export DB_NAME=guest_reservations
+   export PEOPLEVINE_TOKEN=your_token
+   export SEVENROOMS_CLIENT_ID=your_client_id
+   export SEVENROOMS_CLIENT_SECRET=your_client_secret
+   export SEVENROOMS_HOST=https://api.sevenrooms.com
+   export SEVENROOMS_VERSION=/2_4
+   export SEVENROOMS_VENUE_ID=your_venue_id
+   export SEVENROOMS_RESERVATION_WIDGET_URL=https://demo.sevenrooms.com/reservations/docs-ny
+   export SEVENROOMS_WEBHOOK_CLIENT_ID=your_webhook_client_id
+   \`\`\`
+
+3. **Install dependencies**:
+   \`\`\`bash
+   pip install -r docker/requirements.txt
+   \`\`\`
+
+4. **Run the application**:
+   \`\`\`bash
+   python src/mc.py
+   \`\`\`
+
+### Docker Development
+
+\`\`\`bash
+# Build the image
+make build
+
+# Run locally
+make dev
+
+# Check health
+make health
+
+# View logs
+make logs
+\`\`\`
+
+### Production Deployment
+
+The application is deployed using Terragrunt on AWS:
+
+\`\`\`bash
+# Deploy all infrastructure
+terragrunt run-all apply
+
+# Build and push Docker image
+make deploy
+
+# Check deployment status
+aws ecs describe-services --cluster magic-castle-cluster --services magic-castle-service
+\`\`\`
+
+## 🔒 Security Features
+
+- **HTTPS Only**: All traffic encrypted in transit
+- **Private Subnets**: Database and application in private networks
+- **Secrets Management**: API tokens stored in AWS Secrets Manager
+- **IAM Roles**: Least-privilege access for all services
+- **Security Groups**: Network-level access control
+- **VPC Endpoints**: Private connectivity to AWS services
+- **Encryption**: Data encrypted at rest and in transit
+
+## 📊 Monitoring & Observability
+
+- **Health Checks**: Application health monitoring at \`/health\`
+- **CloudWatch Logs**: Centralized logging for all components
+- **ECS Service Discovery**: Automatic service registration
+- **ALB Metrics**: Load balancer performance monitoring
+- **RDS Monitoring**: Database performance insights
+
+## 🔧 Configuration Management
+
+### Environment Variables (ECS Task)
+- \`FLASK_ENV\`: Set to "production"
+- \`SECRETS_MANAGER_ARN\`: ARN of the secrets in AWS Secrets Manager
+- \`IMAGE_VERSION\`: Version tag for the Docker image
+- \`DISABLE_AUTHENTICATION_HEADERS\`: Optional; set to \`true\` for local testing to bypass bearer-token checks
+
+### Secrets (AWS Secrets Manager)
+- \`PEOPLEVINE_TOKEN\`: PeopleVine API authentication token
+- \`MY_AUTH_TOKEN\`: Incoming auth token for PeopleVine calls
+- \`MY_ADMIN_AUTH_TOKEN\`: Admin auth token for privileged endpoints
+- \`MY_AUTH_ID\`: Incoming auth id/username for PeopleVine calls
+- \`SEVENROOMS_CLIENT_ID\`: SevenRooms API client ID (required for reservation system)
+- \`SEVENROOMS_CLIENT_SECRET\`: SevenRooms API client secret (required for reservation system)
+- \`SEVENROOMS_HOST\`: SevenRooms API host URL (default: https://api.sevenrooms.com)
+- \`SEVENROOMS_VERSION\`: SevenRooms API version (default: /2_4)
+- \`SEVENROOMS_VENUE_ID\`: SevenRooms venue identifier used when launching the widget
+- \`SEVENROOMS_WEBHOOK_CLIENT_ID\`: SevenRooms client token used for widget callbacks
+- \`SEVENROOMS_RESERVATION_WIDGET_URL\`: SevenRooms reservation widget base URL
+- \`DB_HOST\`: Database hostname
+- \`DB_PORT\`: Database port (3306)
+- \`DB_NAME\`: Database name
+- \`DB_USER\`: Database username
+- \`DB_PASSWORD\`: Database password
+
+**Note**: SES authentication is handled via ECS task role - no SMTP credentials needed.
+
+**Secrets Update Workflow**: When modifying \`terraform/secrets/config.yaml\`, be sure to rerun the corresponding infrastructure updates (e.g. \`terragrunt apply\` for the secrets-manager module) and redeploy the ECS service so tasks pick up the refreshed secrets.
+
+## 🚨 Error Handling
+
+The application includes comprehensive error handling for:
+- Database connection failures
+- Invalid input data
+- Email sending failures
+- Duplicate invitation usage
+- Missing required parameters
+- AWS service errors
+- Network connectivity issues
+
+## 📈 Performance & Scaling
+
+- **ECS Fargate (Spot)**: Serverless container platform leveraging Fargate Spot capacity for cost savings
+- **Auto Scaling**: Automatic scaling based on CPU/memory usage
+- **Load Balancing**: ALB distributes traffic across multiple tasks
+- **Database Optimization**: RDS with connection pooling
+- **Caching**: Application-level caching for frequently accessed data
+
+## 🧪 Testing
+
+### Health Check
+\`\`\`bash
+curl https://guest-reservations.magiccastle-cloud.com/health
+\`\`\`
+
+### Create Invitation
+\`\`\`bash
+curl -X POST https://guest-reservations.magiccastle-cloud.com/peoplevine-guest-invite \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer $MY_AUTH_TOKEN" \\
+  -d '{
+    "member_first_name": "John",
+    "member_last_name": "Doe",
+    "memberID": "12345",
+    "guest_email": "guest@example.com"
+  }'
+\`\`\`
+
+### Create Reservation
+\`\`\`bash
+curl -X POST https://guest-reservations.magiccastle-cloud.com/api/create-reservation \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer $MY_AUTH_TOKEN" \\
+  -d '{
+    "invitation_id": "550e8400-e29b-41d4-a716-446655440000",
+    "venue_id": "12345",
+    "date": "2025-11-15",
+    "time": "19:00",
+    "party_size": 4,
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "guest@example.com",
+    "phone": "555-555-5555"
+  }'
+\`\`\`
+
+### Manual Invitation Redemption (JSON helper)
+\`\`\`bash
+curl -X POST https://guest-reservations.magiccastle-cloud.com/public-invitation-redemption \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "invitation_id": "550e8400-e29b-41d4-a716-446655440000",
+    "guest_email": "updated-guest@example.com",
+    "guest_last_name": "Guest"
+  }'
+\`\`\`
+> Tip: The same endpoint is accessible via browser at \`/public-invitation-redemption\`.
+
+### Local Test Drivers
+- \`test.py\`: Script used for local regression/automation testing.
+- \`test-drivers/\` directory hosts the Flask-based test driver (\`test-driver.py\`) and accompanying HTML (\`test-driver.html\`) for manual end-to-end testing of invitation workflows. Launch via \`python3 ./test-drivers/test-driver.py\` or run \`./test.sh\`.
+
+## 🔄 CI/CD Pipeline
+
+The application supports automated deployment:
+
+1. **Code Push**: Triggered on main branch commits
+2. **Docker Build**: Automated image building and testing
+3. **ECR Push**: Image pushed to Amazon ECR
+4. **ECS Update**: Service updated with new image
+5. **Health Check**: Automated health verification
+
+## 📚 Additional Documentation
+
+- [Infrastructure Documentation](terraform/README.md)
+- [Docker Configuration](docker/README.md)
+- [SevenRooms Integration](SevenRooms/README.md)
+- [Security Best Practices](terraform/SECURITY_GROUP_BEST_PRACTICES.md)
+- [API Documentation](docs/api.md) (if available)
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## 📄 License
+
+This project is part of the Magic Castle membership system.
+
+## 🆘 Support
+
+For issues and questions:
+1. Check the [troubleshooting guide](terraform/README.md#troubleshooting)
+2. Review CloudWatch logs
+3. Check ECS service status
+4. Verify security group configurations`;
+
+    const html = marked.parse(markdown);
+    const processed = html.replace(
+      /<pre><code class="language-mermaid">([\\s\\S]*?)<\\/code><\\/pre>/g,
+      (match, content) => `<div class="mermaid">${content.trim()}</div>`
+    );
+    document.getElementById('content').innerHTML = processed;
+  </script>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       line-height: 1.6;
-      max-width: 1200px;
+      max-width: 1100px;
       margin: 0 auto;
-      padding: 20px;
-      color: #333;
-      background-color: #fff;
+      padding: 40px 24px 80px;
+      color: #1f2933;
+      background-color: #f4f6fb;
+    }
+
+    h1, h2, h3 {
+      color: #1d3557;
     }
 
     h1 {
-      color: #2c3e50;
-      border-bottom: 3px solid #3498db;
-      padding-bottom: 10px;
+      border-bottom: 3px solid #457b9d;
+      padding-bottom: 8px;
     }
 
     h2 {
-      color: #34495e;
-      border-bottom: 2px solid #ecf0f1;
-      padding-bottom: 8px;
-      margin-top: 30px;
+      border-bottom: 2px solid #e5e9f0;
+      padding-bottom: 6px;
     }
 
     h3 {
-      color: #555;
-      margin-top: 25px;
+      margin-top: 28px;
+      color: #2f4b7c;
     }
 
     pre {
-      background-color: #f8f9fa;
-      border: 1px solid #e1e4e8;
-      border-radius: 6px;
+      background: #0b101d;
+      color: #e5ebf3;
       padding: 16px;
+      border-radius: 10px;
       overflow-x: auto;
     }
 
     code {
-      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
-      background-color: rgba(27,31,35,0.05);
-      padding: 0.2em 0.4em;
-      border-radius: 3px;
-      font-size: 85%;
-    }
-
-    pre code {
-      background-color: transparent;
-      padding: 0;
+      background: #edf2f7;
+      padding: 2px 6px;
+      border-radius: 4px;
     }
 
     table {
-      border-collapse: collapse;
       width: 100%;
-      margin: 20px 0;
+      border-collapse: collapse;
+      margin: 16px 0;
     }
 
-    table th,
-    table td {
-      border: 1px solid #ddd;
-      padding: 12px;
+    table th, table td {
+      border: 1px solid #d2d7ef;
+      padding: 10px;
       text-align: left;
     }
 
     table th {
-      background-color: #f6f8fa;
-      font-weight: 600;
-    }
-
-    ul, ol {
-      padding-left: 30px;
-    }
-
-    li {
-      margin: 8px 0;
-    }
-
-    blockquote {
-      border-left: 4px solid #dfe2e5;
-      padding-left: 16px;
-      margin: 16px 0;
-      color: #6a737d;
-    }
-
-    a {
-      color: #0366d6;
-      text-decoration: none;
-    }
-
-    a:hover {
-      text-decoration: underline;
+      background: #edf2ff;
     }
 
     .mermaid {
-      text-align: center;
-      margin: 20px 0;
       background: #fff;
-      padding: 20px;
-      border: 1px solid #e1e4e8;
-      border-radius: 6px;
-    }
-
-    hr {
-      border: 0;
-      border-top: 1px solid #eaecef;
-      margin: 30px 0;
-    }
-
-    ::selection {
-      background-color: #b3d4fc;
-    }
-
-    .error {
-      background-color: #fff5f5;
-      border: 1px solid #f5c2c7;
-      color: #842029;
+      border-radius: 10px;
       padding: 16px;
-      border-radius: 6px;
+      margin: 20px 0;
+      box-shadow: 0 12px 28px rgba(73, 84, 110, 0.12);
+    }
+
+    ul, ol {
+      padding-left: 24px;
+    }
+
+    blockquote {
+      border-left: 4px solid #457b9d;
+      padding-left: 12px;
+      color: #4a4a4a;
+      background: #e8f1fb;
+    }
+
+    a {
+      color: #1d4ed8;
     }
   </style>
 </head>
 <body>
-  <div id="content">
-    <p>Loading...</p>
-  </div>
+  <div id="content">Loading...</div>
 </body>
 </html>
+
