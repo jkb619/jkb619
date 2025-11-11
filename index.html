@@ -5,55 +5,63 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MC Guest Reservation</title>
 
-  <script type="module">
-    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-    import { marked } from 'https://cdn.jsdelivr.net/npm/marked@13/+esm';
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const contentEl = document.getElementById('content');
 
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: 'default',
-      themeVariables: {
-        primaryColor: '#e1f5fe',
-        primaryTextColor: '#000',
-        primaryBorderColor: '#000',
-        lineColor: '#000',
-        secondaryColor: '#fff3e0',
-        tertiaryColor: '#e8f5e8'
+      if (window.marked) {
+        marked.setOptions({ breaks: true, gfm: true });
       }
-    });
 
-    marked.setOptions({ breaks: true, gfm: true });
+      if (window.mermaid) {
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: 'default',
+          themeVariables: {
+            primaryColor: '#e1f5fe',
+            primaryTextColor: '#000',
+            primaryBorderColor: '#000',
+            lineColor: '#000',
+            secondaryColor: '#fff3e0',
+            tertiaryColor: '#e8f5e8'
+          }
+        });
+      }
 
-    const contentEl = document.getElementById('content');
+      async function renderDocumentation() {
+        try {
+          const response = await fetch('README.md', { cache: 'no-cache' });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
 
-    async function renderDocumentation() {
-      try {
-        const response = await fetch('README.md', { cache: 'no-cache' });
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
+          const markdown = await response.text();
+          const html = window.marked ? marked.parse(markdown) : markdown;
+          const processed = html.replace(
+            /<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g,
+            (_match, diagram) => `<div class="mermaid">${diagram.trim()}</div>`
+          );
+
+          contentEl.innerHTML = processed;
+
+          if (window.mermaid) {
+            await mermaid.run({ querySelector: '.mermaid' });
+          }
+        } catch (error) {
+          console.error('Failed to render documentation:', error);
+          contentEl.innerHTML = `
+            <div class="error">
+              <p><strong>Failed to load documentation.</strong></p>
+              <p>${error.message}</p>
+            </div>
+          `;
         }
-
-        const markdown = await response.text();
-        const html = marked.parse(markdown);
-        const processed = html.replace(
-          /<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g,
-          (_match, diagram) => `<div class="mermaid">${diagram.trim()}</div>`
-        );
-
-        contentEl.innerHTML = processed;
-        await mermaid.run({ querySelector: '.mermaid' });
-      } catch (error) {
-        console.error('Failed to render documentation:', error);
-        contentEl.innerHTML = `
-          <div class="error">
-            <p><strong>Failed to load documentation.</strong></p>
-            <p>${error.message}</p>
-          </div>
-        `;
       }
-    }
 
-    renderDocumentation();
+      renderDocumentation();
+    });
   </script>
 
   <style>
