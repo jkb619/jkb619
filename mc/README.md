@@ -288,6 +288,39 @@ graph TD
     style L fill:#e8f5e8
 ```
 
+## 🧑‍💼 Manual Reservation (Admin Tools)
+
+```mermaid
+sequenceDiagram
+    participant Admin as Admin Tools (Test Driver)
+    participant API as Flask API
+    participant DB as RDS (guest_invites)
+    participant SES as AWS SES
+    participant Guest as Guest User
+    participant SevenRooms as SevenRooms API
+
+    Admin->>API: POST /peoplevine-generate-invitations<br/>Authorization: Bearer MY_ADMIN_AUTH_TOKEN
+    API->>DB: Insert invitation with guest_email = null
+    DB-->>API: Invitation IDs created
+    API-->>Admin: Return invitation_id list
+
+    Admin->>API: POST /public-invitation-redemption<br/>invitation_id, guest_email, guest_last_name
+    API->>DB: Update invitation with manual guest details
+    API->>SES: Send guest_invitation_email
+    SES-->>Guest: Manual invitation email
+
+    Guest->>API: GET /guest-invite-accept
+    API->>DB: Validate invitation status
+    API->>SevenRooms: Retrieve venue availability
+    API-->>Guest: Render reservation widget
+
+    Guest->>API: POST /api/create-reservation
+    API->>SevenRooms: Create reservation
+    SevenRooms-->>API: Reservation confirmation
+    API->>DB: Mark invitation redeemed
+    API-->>Guest: Confirmation page
+```
+
 ## 📧 Email & Reservation Flow
 
 ```mermaid
