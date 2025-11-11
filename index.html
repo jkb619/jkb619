@@ -201,6 +201,13 @@ graph TB
 - **Purpose**: Retrieve all guest invitations (administrative)
 - **Authentication**: `Authorization: Bearer <MY_ADMIN_AUTH_TOKEN>`
 
+### 9. Admin Dashboard
+- **Endpoint**: `GET /dashboard`
+- **Purpose**: Render an HTML dashboard with invitation metrics (created, redeemed, unredeemed, reservations made)
+- **Authentication**: `Authorization: Bearer <MY_ADMIN_AUTH_TOKEN>`
+- **Features**: Timeframe filter (1 day/week/month/year), live UTC reference clock, and toggle between tabular metrics and time-series graphs
+- **Response**: HTML page with aggregated counts or charts depending on selected view
+
 ## 🗄️ Database Schema
 
 The application uses a single table `guest_invites` with the following structure:
@@ -349,15 +356,6 @@ sequenceDiagram
     SevenRooms-->>ECS: Venues Data
     ECS-->>ALB: Reservation Calendar HTML
     ALB-->>Guest: Display Calendar Widget
-    
-    Guest->>ALB: Select Date & Time
-    ALB->>ECS: GET /api/availability
-    ECS->>RDS: Validate Invitation
-    RDS-->>ECS: Invitation Valid
-    ECS->>SevenRooms: Get Availability
-    SevenRooms-->>ECS: Available Times
-    ECS-->>ALB: Available Times JSON
-    ALB-->>Guest: Display Available Times
     
     Guest->>ALB: Submit Reservation Form
     ALB->>ECS: POST /api/create-reservation
@@ -565,11 +563,6 @@ curl -X POST https://guest-reservations.magiccastle-cloud.com/peoplevine-guest-i
     "memberID": "12345",
     "guest_email": "guest@example.com"
   }'
-\`\`\`
-
-### Get Availability
-\`\`\`bash
-curl -X GET "https://guest-reservations.magiccastle-cloud.com/api/availability?invitation_id=550e8400-e29b-41d4-a716-446655440000&date=2025-11-15&party_size=4"
 \`\`\`
 
 ### Create Reservation
