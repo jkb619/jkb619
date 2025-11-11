@@ -1,38 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Magic Castle Guest Invitation System</title>
-  <script type="module">
-    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-    mermaid.initialize({
-      startOnLoad: true,
-      theme: 'default',
-      securityLevel: 'loose'
-    });
-  </script>
-  <script type="module">
-    import { marked } from 'https://cdn.jsdelivr.net/npm/marked@13/+esm';
-
-    const markdown = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Magic Castle Guest Invitation System</title>
-  <script type="module">
-    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-    mermaid.initialize({
-      startOnLoad: true,
-      theme: 'default',
-      securityLevel: 'loose'
-    });
-  </script>
-  <script type="module">
-    import { marked } from 'https://cdn.jsdelivr.net/npm/marked@13/+esm';
-
-    const markdown = `# Magic Castle Guest Invitation System
+# Magic Castle Guest Invitation System
 
 A Flask-based REST API (served via Gunicorn) for managing guest invitations in a membership system. This application handles guest invitation creation, email notifications, and invitation acceptance workflows, deployed on AWS using ECS Fargate, RDS MariaDB, and Application Load Balancer.
 
@@ -40,7 +6,7 @@ A Flask-based REST API (served via Gunicorn) for managing guest invitations in a
 
 The application is deployed on AWS with the following architecture:
 
-\`\`\`mermaid
+```mermaid
 graph TB
     subgraph "Internet"
         User[User/Client]
@@ -96,7 +62,7 @@ graph TB
     style DB fill:#e8f5e8
     style ALB fill:#e0f2f1
     style Secrets fill:#fce4ec
-\`\`\`
+```
 
 ## ✨ Features
 
@@ -116,35 +82,35 @@ graph TB
 ## 🌐 API Endpoints
 
 ### 1. Health Check
-- **Endpoint**: \`GET /health\`
+- **Endpoint**: `GET /health`
 - **Purpose**: Application health monitoring
 - **Response**: 
-  \`\`\`json
+  ```json
   {
     "status": "healthy"
   }
-  \`\`\`
+  ```
 
 ### 2. Create Guest Invitation
-- **Endpoint**: \`POST /peoplevine-guest-invite\`
+- **Endpoint**: `POST /peoplevine-guest-invite`
 - **Purpose**: Create a single guest invitation and send email notification
-- **Authentication**: \`Authorization: Bearer <MY_AUTH_TOKEN>\`
+- **Authentication**: `Authorization: Bearer <MY_AUTH_TOKEN>`
 - **Payload**: 
-  \`\`\`json
+  ```json
   {
     "member_first_name": "Member's first name",
     "member_last_name": "Member's last name",
     "memberID": "Member's unique ID",
     "guest_email": "Guest's email address"
   }
-  \`\`\`
+  ```
 
 ### 3. Generate Multiple Invitations
-- **Endpoint**: \`POST /peoplevine-generate-invitations\`
+- **Endpoint**: `POST /peoplevine-generate-invitations`
 - **Purpose**: Generate multiple invitation IDs for bulk operations
-- **Authentication**: \`Authorization: Bearer <MY_ADMIN_AUTH_TOKEN>\`
+- **Authentication**: `Authorization: Bearer <MY_ADMIN_AUTH_TOKEN>`
 - **Payload**:
-  \`\`\`json
+  ```json
   {
     "members": [
       {
@@ -155,23 +121,23 @@ graph TB
       }
     ]
   }
-  \`\`\`
+  ```
 - **Defaults**:
-  - \`memberID\` defaults to \`"0"\` when omitted.
-  - \`member_first_name\` defaults to \`"Magic"\`; \`member_last_name\` defaults to \`"Castle"\`.
-  - Bulk invitations are stored with \`guest_email = null\` until a guest supplies their details.
+  - `memberID` defaults to `"0"` when omitted.
+  - `member_first_name` defaults to `"Magic"`; `member_last_name` defaults to `"Castle"`.
+  - Bulk invitations are stored with `guest_email = null` until a guest supplies their details.
 
 ### 4. Accept Guest Invitation
-- **Endpoint**: \`GET /guest-invite-accept\`
+- **Endpoint**: `GET /guest-invite-accept`
 - **Purpose**: Process guest invitation acceptance and display reservation calendar
-- **Parameters**: \`invitation_id\`, \`MemberID\`, \`guest_email\`
+- **Parameters**: `invitation_id`, `MemberID`, `guest_email`
 - **Response**: HTML page with reservation calendar widget
 
 ### 5. Create Reservation
-- **Endpoint**: \`POST /api/create-reservation\`
+- **Endpoint**: `POST /api/create-reservation`
 - **Purpose**: Create a reservation via SevenRooms API and mark invitation as redeemed
 - **Payload**:
-  \`\`\`json
+  ```json
   {
     "invitation_id": "550e8400-e29b-41d4-a716-446655440000",
     "venue_id": "12345",
@@ -183,35 +149,35 @@ graph TB
     "email": "guest@example.com",
     "phone": "555-555-5555"
   }
-  \`\`\`
+  ```
 - **Response**: HTML confirmation page with reservation details
 
 ### 6. SevenRooms Callback
-- **Endpoint**: \`POST /sevenrooms_callback_post_reservation\`
+- **Endpoint**: `POST /sevenrooms_callback_post_reservation`
 - **Purpose**: Webhook callback from SevenRooms after reservation is made
-- **Authentication**: \`Authorization: Bearer <MY_AUTH_TOKEN>\`
+- **Authentication**: `Authorization: Bearer <MY_AUTH_TOKEN>`
 - **Response**: JSON confirmation of invitation redemption
 
 ### 7. Public Invitation Redemption
-- **Endpoints**: \`GET /public-invitation-redemption\`, \`POST /public-invitation-redemption\`
+- **Endpoints**: `GET /public-invitation-redemption`, `POST /public-invitation-redemption`
 - **Purpose**: Allow guests to enter an invitation ID, email address, and last name to receive a fresh invitation email.
 - **Response**: Branded HTML confirmation/notice page.
 
 ### 8. List All Invitations
-- **Endpoint**: \`GET /guest-invites\`
+- **Endpoint**: `GET /guest-invites`
 - **Purpose**: Retrieve all guest invitations (administrative)
-- **Authentication**: \`Authorization: Bearer <MY_ADMIN_AUTH_TOKEN>\`
+- **Authentication**: `Authorization: Bearer <MY_ADMIN_AUTH_TOKEN>`
 
 ### 9. Admin Dashboard
-- **Endpoint**: \`GET /dashboard\`
+- **Endpoint**: `GET /dashboard`
 - **Purpose**: Render an HTML dashboard with invitation metrics (created, redeemed, unredeemed, reservations made)
-- **Authentication**: \`Authorization: Bearer <MY_ADMIN_AUTH_TOKEN>\`
+- **Authentication**: `Authorization: Bearer <MY_ADMIN_AUTH_TOKEN>`
 - **Features**: Timeframe filter (1 day/week/month/year), live UTC clock reference, and toggle between tabular metrics and time-series graphs
 - **Response**: HTML page with aggregated counts or charts depending on selected view
 
 ## 🗄️ Database Schema
 
-The application uses a single table \`guest_invites\` with the following structure:
+The application uses a single table `guest_invites` with the following structure:
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -229,7 +195,7 @@ The application uses a single table \`guest_invites\` with the following structu
 
 ## 🔄 Application Flow
 
-\`\`\`mermaid
+```mermaid
 graph TD
     A[Client Request] --> B{Request Type}
     
@@ -320,11 +286,11 @@ graph TD
     style J fill:#ede7f6
     style K fill:#e0f2f1
     style L fill:#e8f5e8
-\`\`\`
+```
 
 ## 📧 Email & Reservation Flow
 
-\`\`\`mermaid
+```mermaid
 sequenceDiagram
     participant Client
     participant ALB
@@ -369,7 +335,7 @@ sequenceDiagram
     RDS-->>ECS: Confirmation
     ECS-->>ALB: Reservation Confirmation HTML
     ALB-->>Guest: Display Confirmation Page
-\`\`\`
+```
 
 ## 🚀 Infrastructure Components
 
@@ -397,22 +363,22 @@ sequenceDiagram
 **IMPORTANT**: For first-time deployments, you must deploy the KMS key first and configure SOPS:
 
 1. **Deploy KMS Key** (required for secrets encryption):
-   \`\`\`bash
+   ```bash
    cd terraform/kms
    terragrunt apply
    cd ..
-   \`\`\`
+   ```
 
 2. **Get KMS Key ARN and configure SOPS**:
-   \`\`\`bash
+   ```bash
    cd kms && terragrunt output key_arn && cd ..
    # Update terraform/secrets/.sops.yaml with the key ARN
-   \`\`\`
+   ```
 
 3. **Create and encrypt secrets**:
-   \`\`\`bash
+   ```bash
    sops terraform/secrets/config.yaml
-   \`\`\`
+   ```
 
 For detailed setup instructions, see [terraform/SETUP.md](terraform/SETUP.md).
 
@@ -427,42 +393,42 @@ For detailed setup instructions, see [terraform/SETUP.md](terraform/SETUP.md).
 ### Local Development
 
 1. **Clone the repository**:
-   \`\`\`bash
+   ```bash
    git clone <repository-url>
    cd mc-guest-reservation
-   \`\`\`
+   ```
 
 2. **Set up environment variables**:
-   \`\`\`bash
+   ```bash
    export DB_HOST=localhost
    export DB_USER=root
    export DB_PASSWORD=your_password
    export DB_NAME=guest_reservations
    export PEOPLEVINE_TOKEN=your_token
    export SEVENROOMS_CLIENT_ID=your_client_id
-   export SEVENROOMS_CLIENT_SECRET=your_client_secret
-   export SEVENROOMS_HOST=https://api.sevenrooms.com
-   export SEVENROOMS_VERSION=/2_4
-   export SEVENROOMS_VENUE_ID=your_venue_id
-   export SEVENROOMS_RESERVATION_WIDGET_URL=https://demo.sevenrooms.com/reservations/docs-ny
-   export SEVENROOMS_WEBHOOK_CLIENT_ID=your_webhook_client_id
-   \`\`\`
+  export SEVENROOMS_CLIENT_SECRET=your_client_secret
+  export SEVENROOMS_HOST=https://api.sevenrooms.com
+  export SEVENROOMS_VERSION=/2_4
+  export SEVENROOMS_VENUE_ID=your_venue_id
+  export SEVENROOMS_RESERVATION_WIDGET_URL=https://demo.sevenrooms.com/reservations/docs-ny
+  export SEVENROOMS_WEBHOOK_CLIENT_ID=your_webhook_client_id
+   ```
 
 3. **Install dependencies**:
-   \`\`\`bash
+   ```bash
    pip install -r docker/requirements.txt
-   \`\`\`
+   ```
 
 4. **Run the application**:
-   \`\`\`bash
+   ```bash
    gunicorn --chdir src --bind 0.0.0.0:5000 mc:app
-   \`\`\`
+   ```
 
-   > Tip: Adjust concurrency by setting GUNICORN_WORKERS=<count> before running if you need more or fewer workers.
+   > Tip: Adjust concurrency with `GUNICORN_WORKERS=<count>` before running if you need more or fewer workers.
 
 ### Docker Development
 
-\`\`\`bash
+```bash
 # Build the image
 make build
 
@@ -474,13 +440,13 @@ make health
 
 # View logs
 make logs
-\`\`\`
+```
 
 ### Production Deployment
 
 The application is deployed using Terragrunt on AWS:
 
-\`\`\`bash
+```bash
 # Deploy all infrastructure
 terragrunt run-all apply
 
@@ -489,7 +455,7 @@ make deploy
 
 # Check deployment status
 aws ecs describe-services --cluster magic-castle-cluster --services magic-castle-service
-\`\`\`
+```
 
 ## 🔒 Security Features
 
@@ -503,7 +469,7 @@ aws ecs describe-services --cluster magic-castle-cluster --services magic-castle
 
 ## 📊 Monitoring & Observability
 
-- **Health Checks**: Application health monitoring at \`/health\`
+- **Health Checks**: Application health monitoring at `/health`
 - **CloudWatch Logs**: Centralized logging for all components
 - **ECS Service Discovery**: Automatic service registration
 - **ALB Metrics**: Load balancer performance monitoring
@@ -512,37 +478,37 @@ aws ecs describe-services --cluster magic-castle-cluster --services magic-castle
 ## 🔧 Configuration Management
 
 ### Environment Variables (ECS Task)
-- FLASK_ENV: Set to "production"
-- SECRETS_MANAGER_ARN: ARN of the secrets in AWS Secrets Manager
-- IMAGE_VERSION: Version tag for the Docker image
-- DISABLE_AUTHENTICATION_HEADERS: Optional; set to true for local testing to bypass bearer-token checks
-- GUNICORN_WORKERS: Optional; override Gunicorn worker count (default: 4 in containers)
-- GUNICORN_LOG_LEVEL: Optional; override Gunicorn log level (default: info)
-- GUNICORN_TIMEOUT: Optional; request timeout in seconds (default: 30)
-- GUNICORN_ACCESSLOG: Optional; set to - (default) for stdout or provide a file path
-- GUNICORN_ERRORLOG: Optional; set to - (default) for stderr or provide a file path
- 
+- `FLASK_ENV`: Set to "production"
+- `SECRETS_MANAGER_ARN`: ARN of the secrets in AWS Secrets Manager
+- `IMAGE_VERSION`: Version tag for the Docker image
+- `DISABLE_AUTHENTICATION_HEADERS`: Optional; set to `true` for local testing to bypass bearer-token checks
+- `GUNICORN_WORKERS`: Optional; override Gunicorn worker count (default: 4 in containers)
+- `GUNICORN_LOG_LEVEL`: Optional; override Gunicorn log level (default: `info`)
+- `GUNICORN_TIMEOUT`: Optional; request timeout in seconds (default: 30)
+- `GUNICORN_ACCESSLOG`: Optional; set to `-` (default) for stdout or provide a file path
+- `GUNICORN_ERRORLOG`: Optional; set to `-` (default) for stderr or provide a file path
+
 ### Secrets (AWS Secrets Manager)
-- \`PEOPLEVINE_TOKEN\`: PeopleVine API authentication token
-- \`MY_AUTH_TOKEN\`: Incoming auth token for PeopleVine calls
-- \`MY_ADMIN_AUTH_TOKEN\`: Admin auth token for privileged endpoints
-- \`MY_AUTH_ID\`: Incoming auth id/username for PeopleVine calls
-- \`SEVENROOMS_CLIENT_ID\`: SevenRooms API client ID (required for reservation system)
-- \`SEVENROOMS_CLIENT_SECRET\`: SevenRooms API client secret (required for reservation system)
-- \`SEVENROOMS_HOST\`: SevenRooms API host URL (default: https://api.sevenrooms.com)
-- \`SEVENROOMS_VERSION\`: SevenRooms API version (default: /2_4)
-- \`SEVENROOMS_VENUE_ID\`: SevenRooms venue identifier used when launching the widget
-- \`SEVENROOMS_WEBHOOK_CLIENT_ID\`: SevenRooms client token used for widget callbacks
-- \`SEVENROOMS_RESERVATION_WIDGET_URL\`: SevenRooms reservation widget base URL
-- \`DB_HOST\`: Database hostname
-- \`DB_PORT\`: Database port (3306)
-- \`DB_NAME\`: Database name
-- \`DB_USER\`: Database username
-- \`DB_PASSWORD\`: Database password
+- `PEOPLEVINE_TOKEN`: PeopleVine API authentication token
+- `MY_AUTH_TOKEN`: Incoming auth token for PeopleVine calls
+- `MY_ADMIN_AUTH_TOKEN`: Admin auth token for privileged endpoints
+- `MY_AUTH_ID`: Incoming auth id/username for PeopleVine calls
+- `SEVENROOMS_CLIENT_ID`: SevenRooms API client ID (required for reservation system)
+- `SEVENROOMS_CLIENT_SECRET`: SevenRooms API client secret (required for reservation system)
+- `SEVENROOMS_HOST`: SevenRooms API host URL (default: https://api.sevenrooms.com)
+- `SEVENROOMS_VERSION`: SevenRooms API version (default: /2_4)
+- `SEVENROOMS_VENUE_ID`: SevenRooms venue identifier used when launching the widget
+- `SEVENROOMS_WEBHOOK_CLIENT_ID`: SevenRooms client token used for widget callbacks
+- `SEVENROOMS_RESERVATION_WIDGET_URL`: SevenRooms reservation widget base URL
+- `DB_HOST`: Database hostname
+- `DB_PORT`: Database port (3306)
+- `DB_NAME`: Database name
+- `DB_USER`: Database username
+- `DB_PASSWORD`: Database password
 
 **Note**: SES authentication is handled via ECS task role - no SMTP credentials needed.
 
-**Secrets Update Workflow**: When modifying \`terraform/secrets/config.yaml\`, be sure to rerun the corresponding infrastructure updates (e.g. \`terragrunt apply\` for the secrets-manager module) and redeploy the ECS service so tasks pick up the refreshed secrets.
+**Secrets Update Workflow**: When modifying `terraform/secrets/config.yaml`, be sure to rerun the corresponding infrastructure updates (e.g. `terragrunt apply` for the secrets-manager module) and redeploy the ECS service so tasks pick up the refreshed secrets.
 
 ## 🚨 Error Handling
 
@@ -566,28 +532,28 @@ The application includes comprehensive error handling for:
 ## 🧪 Testing
 
 ### Health Check
-\`\`\`bash
+```bash
 curl https://guest-reservations.magiccastle-cloud.com/health
-\`\`\`
+```
 
 ### Create Invitation
-\`\`\`bash
-curl -X POST https://guest-reservations.magiccastle-cloud.com/peoplevine-guest-invite \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer $MY_AUTH_TOKEN" \\
+```bash
+curl -X POST https://guest-reservations.magiccastle-cloud.com/peoplevine-guest-invite \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $MY_AUTH_TOKEN" \
   -d '{
     "member_first_name": "John",
     "member_last_name": "Doe",
     "memberID": "12345",
     "guest_email": "guest@example.com"
   }'
-\`\`\`
+```
 
 ### Create Reservation
-\`\`\`bash
-curl -X POST https://guest-reservations.magiccastle-cloud.com/api/create-reservation \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer $MY_AUTH_TOKEN" \\
+```bash
+curl -X POST https://guest-reservations.magiccastle-cloud.com/api/create-reservation \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $MY_AUTH_TOKEN" \
   -d '{
     "invitation_id": "550e8400-e29b-41d4-a716-446655440000",
     "venue_id": "12345",
@@ -599,23 +565,23 @@ curl -X POST https://guest-reservations.magiccastle-cloud.com/api/create-reserva
     "email": "guest@example.com",
     "phone": "555-555-5555"
   }'
-\`\`\`
+```
 
 ### Manual Invitation Redemption (JSON helper)
-\`\`\`bash
-curl -X POST https://guest-reservations.magiccastle-cloud.com/public-invitation-redemption \\
-  -H "Content-Type: application/json" \\
+```bash
+curl -X POST https://guest-reservations.magiccastle-cloud.com/public-invitation-redemption \
+  -H "Content-Type: application/json" \
   -d '{
     "invitation_id": "550e8400-e29b-41d4-a716-446655440000",
     "guest_email": "updated-guest@example.com",
     "guest_last_name": "Guest"
   }'
-\`\`\`
-> Tip: The same endpoint is accessible via browser at \`/public-invitation-redemption\`.
+```
+> Tip: The same endpoint is accessible via browser at `/public-invitation-redemption`.
 
 ### Local Test Drivers
-- \`test.py\`: Script used for local regression/automation testing.
-- \`test-drivers/\` directory hosts the Flask-based test driver (\`test-driver.py\`) and accompanying HTML (\`test-driver.html\`) for manual end-to-end testing of invitation workflows. Launch via \`python3 ./test-drivers/test-driver.py\` or run \`./test.sh\`.
+- `test.py`: Script used for local regression/automation testing.
+- `test-drivers/` directory hosts the Flask-based test driver (`test-driver.py`) and accompanying HTML (`test-driver.html`) for manual end-to-end testing of invitation workflows. Launch via `python3 ./test-drivers/test-driver.py` or run `./test.sh`.
 
 ## 🔄 CI/CD Pipeline
 
@@ -653,127 +619,4 @@ For issues and questions:
 1. Check the [troubleshooting guide](terraform/README.md#troubleshooting)
 2. Review CloudWatch logs
 3. Check ECS service status
-4. Verify security group configurations`;
-
-    const html = marked.parse(markdown);
-    const container = document.getElementById('content');
-    container.innerHTML = html;
-
-    container.querySelectorAll('pre code.language-mermaid').forEach(codeBlock => {
-      const wrapper = document.createElement('div');
-      wrapper.className = 'mermaid';
-      wrapper.textContent = codeBlock.textContent.trim();
-      const pre = codeBlock.closest('pre');
-      if (pre && pre.parentNode) {
-        pre.parentNode.replaceChild(wrapper, pre);
-      }
-    });
-  </script>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      line-height: 1.6;
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 40px 24px 80px;
-      color: #1f2933;
-      background-color: #f4f6fb;
-    }
-
-    h1, h2, h3 {
-      color: #1d3557;
-    }
-
-    h1 {
-      border-bottom: 3px solid #457b9d;
-      padding-bottom: 8px;
-    }
-
-    h2 {
-      border-bottom: 2px solid #e5e9f0;
-      padding-bottom: 6px;
-    }
-
-    h3 {
-      margin-top: 28px;
-      color: #2f4b7c;
-    }
-
-    pre {
-      background: #f5f7fb;
-      color: #0f172a;
-      padding: 18px;
-      border-radius: 10px;
-      border: 1px solid #c7cfe2;
-      overflow-x: auto;
-    }
-
-    pre code {
-      background: transparent;
-      color: #0f172a;
-      font-size: 0.95em;
-      line-height: 1.65;
-      display: block;
-      padding: 0;
-      border: none;
-    }
-
-    code {
-      background: #eef3ff;
-      color: #102043;
-      padding: 3px 7px;
-      border-radius: 6px;
-      border: 1px solid #d0d7ef;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 16px 0;
-      background: #ffffff;
-      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
-    }
-
-    table th, table td {
-      border: 1px solid #d8def0;
-      padding: 12px 14px;
-      text-align: left;
-      color: #1f2933;
-    }
-
-    table th {
-      background: #eef3ff;
-      color: #1a2a4a;
-      font-weight: 600;
-    }
-
-    .mermaid {
-      background: #ffffff;
-      border-radius: 12px;
-      padding: 20px;
-      margin: 24px 0;
-      border: 1px solid #d6def3;
-      box-shadow: 0 12px 30px rgba(100, 116, 139, 0.15);
-    }
-
-    ul, ol {
-      padding-left: 24px;
-    }
-
-    blockquote {
-      border-left: 4px solid #457b9d;
-      padding-left: 12px;
-      color: #4a4a4a;
-      background: #e8f1fb;
-    }
-
-    a {
-      color: #1d4ed8;
-    }
-  </style>
-</head>
-<body>
-  <div id="content">Loading...</div>
-</body>
-</html>
-
+4. Verify security group configurations
