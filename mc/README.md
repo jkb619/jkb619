@@ -295,25 +295,6 @@ graph TD
 
 ```mermaid
 sequenceDiagram
-    participant AdminUI as Admin UI (/peoplevine-generate-invitations)
-    participant API
-    participant DB
-
-    AdminUI->>API: GET /peoplevine-generate-invitations
-    API-->>AdminUI: Render HTML form
-
-    AdminUI->>API: POST /peoplevine-generate-invitations<br/>Authorization: Bearer MY_ADMIN_AUTH_TOKEN
-    API->>API: Validate payload (members array)
-    loop For each member
-        API->>API: Generate UUID invitation IDs
-        API->>DB: Insert guest_invites rows (guest_email=null)
-        DB-->>API: Insert confirmation
-    end
-    API-->>AdminUI: JSON results + success banner
-```
-
-```mermaid
-sequenceDiagram
     participant AdminUI as Admin UI (/admin-dump-database)
     participant API
     participant DB
@@ -465,6 +446,41 @@ sequenceDiagram
     SevenRooms-->>API: Reservation confirmation
     API->>DB: Mark invitation redeemed
     API-->>Guest: Confirmation page
+```
+
+#### Dump Database
+
+```mermaid
+sequenceDiagram
+    participant AdminUI as Admin UI (/admin-dump-database)
+    participant API
+    participant DB
+
+    AdminUI->>API: GET /admin-dump-database<br/>Authorization: Bearer MY_ADMIN_AUTH_TOKEN
+    API->>API: Ensure debug mode enabled
+    API->>DB: SELECT * FROM guest_invites
+    DB-->>API: Invitation records
+    alt JSON requested (?format=json or Accept header)
+        API-->>AdminUI: JSON { guest_invites, total }
+    else
+        API-->>AdminUI: Render guest_invites_table.html (sortable grid)
+    end
+```
+
+#### Dashboard
+
+```mermaid
+sequenceDiagram
+    participant AdminUI as Admin UI (/dashboard)
+    participant API
+    participant DB
+
+    AdminUI->>API: GET /dashboard?timeframe=1_month&view=data<br/>Authorization: Bearer MY_ADMIN_AUTH_TOKEN
+    API->>API: Parse timeframe/view params
+    API->>DB: Query aggregated invitation/reservation metrics
+    DB-->>API: Counts + time-series buckets
+    API->>API: Prepare cards or Chart.js datasets
+    API-->>AdminUI: Render admin_dashboard.html with live UTC clock
 ```
 
 ## 🚨 Error Handling
