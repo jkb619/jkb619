@@ -56,12 +56,12 @@ graph TB
     DNS --> ALB
     ALB --> ECS
     
-    style User fill:#1e40af,color:#ffffff
-    style Guest fill:#7c3aed,color:#ffffff
-    style ECS fill:#0f766e,color:#ffffff
-    style DB fill:#0d9488,color:#ffffff
-    style ALB fill:#1e293b,color:#ffffff
-    style Secrets fill:#9333ea,color:#ffffff
+    style User fill:#e1f5fe
+    style Guest fill:#f3e5f5
+    style ECS fill:#fff3e0
+    style DB fill:#e8f5e8
+    style ALB fill:#e0f2f1
+    style Secrets fill:#fce4ec
 ```
 
 ## ✨ Features
@@ -275,17 +275,17 @@ graph TD
     K3 --> Z
     L2 --> Z
     
-    style A fill:#1d4ed8,color:#ffffff
-    style Z fill:#16a34a,color:#ffffff
-    style C fill:#2563eb,color:#ffffff
-    style D fill:#2563eb,color:#ffffff
-    style E fill:#7c3aed,color:#ffffff
-    style G fill:#0ea5e9,color:#ffffff
-    style H fill:#f97316,color:#ffffff
-    style I fill:#6d28d9,color:#ffffff
-    style J fill:#6d28d9,color:#ffffff
-    style K fill:#1e293b,color:#ffffff
-    style L fill:#16a34a,color:#ffffff
+    style A fill:#e1f5fe
+    style Z fill:#e8f5e8
+    style C fill:#fff3e0
+    style D fill:#fff3e0
+    style E fill:#f3e5f5
+    style G fill:#c8e6c9
+    style H fill:#fff9c4
+    style I fill:#ede7f6
+    style J fill:#ede7f6
+    style K fill:#e0f2f1
+    style L fill:#e8f5e8
 ```
 
 ## 🧑‍💼 Manual Reservation (Admin Tools)
