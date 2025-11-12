@@ -291,81 +291,6 @@ graph TD
     style L fill:#16a34a,color:#ffffff
 ```
 
-## 🛠️ Administrative Tools
-
-The repository includes a Flask-based test driver and polished HTML interfaces that proxy through to the production API while automatically injecting the correct bearer tokens.
-
-- Launch via `python3 ./test-drivers/test-driver.py` (or `./test.sh`)
-- Navigate to `http://localhost:8080/`
-- Available tools:
-  - **Guest Invitation Form** — renders `/peoplevine-guest-invite` for single-invite workflows
-  - **Bulk Invitation Generator** — renders `/peoplevine-generate-invitations` with multi-member support
-  - **Display Database** — opens `/admin-dump-database`, showing a sortable/searchable data grid
-  - **Admin Dashboard** — opens `/dashboard` with metrics, timeframe selector, and graph/data toggle
-
-### Sample Outputs
-
-**Bulk Invitation Generator**
-```
-+---------------------------------------------------------------------+
-| Member 1                                                            |
-| ------------------------------------------------------------------- |
-| Member ID           [ 0________ ]                                   |
-| Number of Invites   [ 10_______ ]                                   |
-| Member First Name   [ Magic____ ]                                   |
-| Member Last Name    [ Castle___ ]                                   |
-|                                 [Remove]                           |
-+---------------------------------------------------------------------+
-| [➕ Add Member]                                   [Generate Invites] |
-+---------------------------------------------------------------------+
-```
-
-**Guest Invites Table**
-```
-+---------------+----------------------+-----------------+-----------+
-| Invitation ID | Guest Email          | Redeemed        | Created   |
-|---------------+----------------------+-----------------+-----------|
-| 6ed1...        | guest@example.com   | Yes             | 2025-03-01|
-| f2b7...        |                     | No              | 2025-03-04|
-+---------------+----------------------+-----------------+-----------+
-Search invitations…                 Page 1 of N (25 per page)
-```
-
-> The live UI uses Simple-DataTables for column sorting, pagination, and instant search.
-
-#### Bulk Invitation Generation
-
-```mermaid
-sequenceDiagram
-    participant Admin as Admin Tools (Test Driver)
-    participant API as Flask API
-    participant DB as RDS (guest_invites)
-    participant SES as AWS SES
-    participant Guest as Guest User
-    participant SevenRooms as SevenRooms API
-
-    Admin->>API: POST /peoplevine-generate-invitations<br/>Authorization: Bearer MY_ADMIN_AUTH_TOKEN
-    API->>DB: Insert invitation with guest_email = null
-    DB-->>API: Invitation IDs created
-    API-->>Admin: Return invitation_id list
-
-    Admin->>API: POST /public-invitation-redemption<br/>invitation_id, guest_email, guest_last_name
-    API->>DB: Update invitation with manual guest details
-    API->>SES: Send guest_invitation_email
-    SES-->>Guest: Manual invitation email
-
-    Guest->>API: GET /guest-invite-accept
-    API->>DB: Validate invitation status
-    API->>SevenRooms: Retrieve venue availability
-    API-->>Guest: Render reservation widget
-
-    Guest->>API: POST /api/create-reservation
-    API->>SevenRooms: Create reservation
-    SevenRooms-->>API: Reservation confirmation
-    API->>DB: Mark invitation redeemed
-    API-->>Guest: Confirmation page
-```
-
 ### Flow Diagrams
 
 ```mermaid
@@ -467,178 +392,80 @@ sequenceDiagram
     ALB-->>Guest: Display Confirmation Page
 ```
 
-## 🚀 Infrastructure Components
+## 🛠️ Administrative Tools
 
-### Core Services
-- **ECS Fargate (Spot)**: Containerized Flask application running on cost-optimized Fargate Spot capacity
-- **RDS MariaDB**: Database for invitation storage
-- **Application Load Balancer**: HTTPS termination and routing
-- **Route53**: DNS management for custom domain
+The repository includes a Flask-based test driver and polished HTML interfaces that proxy through to the production API while automatically injecting the correct bearer tokens.
 
-### Security & Secrets
-- **AWS Secrets Manager**: Secure storage of API tokens and credentials
-- **VPC Endpoints**: Private connectivity to AWS services
-- **Security Groups**: Network-level access control
-- **IAM Roles**: Service-to-service authentication
+- Launch via `python3 ./test-drivers/test-driver.py` (or `./test.sh`)
+- Navigate to `http://localhost:8080/`
+- Available tools:
+  - **Guest Invitation Form** — renders `/peoplevine-guest-invite` for single-invite workflows
+  - **Bulk Invitation Generator** — renders `/peoplevine-generate-invitations` with multi-member support
+  - **Display Database** — opens `/admin-dump-database`, showing a sortable/searchable data grid
+  - **Admin Dashboard** — opens `/dashboard` with metrics, timeframe selector, and graph/data toggle
 
-### Monitoring & Logging
-- **CloudWatch Logs**: Application and infrastructure logging
-- **ECS Service Discovery**: Automatic service registration
-- **Health Checks**: Application and infrastructure monitoring
+### Sample Outputs
 
-## 🛠️ Development & Deployment
-
-### First-Time Setup
-
-**IMPORTANT**: For first-time deployments, you must deploy the KMS key first and configure SOPS:
-
-1. **Deploy KMS Key** (required for secrets encryption):
-   ```bash
-   cd terraform/kms
-   terragrunt apply
-   cd ..
-   ```
-
-2. **Get KMS Key ARN and configure SOPS**:
-   ```bash
-   cd kms && terragrunt output key_arn && cd ..
-   # Update terraform/secrets/.sops.yaml with the key ARN
-   ```
-
-3. **Create and encrypt secrets**:
-   ```bash
-   sops terraform/secrets/config.yaml
-   ```
-
-For detailed setup instructions, see [terraform/SETUP.md](terraform/SETUP.md).
-
-### Prerequisites
-- Python 3.13+
-- Docker
-- AWS CLI configured
-- Terragrunt
-- Terraform
-- SOPS (for secrets management)
-
-### Local Development
-
-1. **Clone the repository**:
-   ```bash
-   git clone <repository-url>
-   cd mc-guest-reservation
-   ```
-
-2. **Set up environment variables**:
-   ```bash
-   export DB_HOST=localhost
-   export DB_USER=root
-   export DB_PASSWORD=your_password
-   export DB_NAME=guest_reservations
-   export PEOPLEVINE_TOKEN=your_token
-   export SEVENROOMS_CLIENT_ID=your_client_id
-  export SEVENROOMS_CLIENT_SECRET=your_client_secret
-  export SEVENROOMS_HOST=https://api.sevenrooms.com
-  export SEVENROOMS_VERSION=/2_4
-  export SEVENROOMS_VENUE_ID=your_venue_id
-  export SEVENROOMS_RESERVATION_WIDGET_URL=https://demo.sevenrooms.com/reservations/docs-ny
-  export SEVENROOMS_WEBHOOK_CLIENT_ID=your_webhook_client_id
-   ```
-
-3. **Install dependencies**:
-   ```bash
-   pip install -r docker/requirements.txt
-   ```
-
-4. **Run the application**:
-   ```bash
-   gunicorn --chdir src --bind 0.0.0.0:5000 mc:app
-   ```
-
-   > Tip: Adjust concurrency with `GUNICORN_WORKERS=<count>` before running if you need more or fewer workers.
-
-### Docker Development
-
-```bash
-# Build the image
-make build
-
-# Run locally
-make dev
-
-# Check health
-make health
-
-# View logs
-make logs
+**Bulk Invitation Generator**
+```
++---------------------------------------------------------------------+
+| Member 1                                                            |
+| ------------------------------------------------------------------- |
+| Member ID           [ 0________ ]                                   |
+| Number of Invites   [ 10_______ ]                                   |
+| Member First Name   [ Magic____ ]                                   |
+| Member Last Name    [ Castle___ ]                                   |
+|                                 [Remove]                           |
++---------------------------------------------------------------------+
+| [➕ Add Member]                                   [Generate Invites] |
++---------------------------------------------------------------------+
 ```
 
-### Production Deployment
-
-The application is deployed using Terragrunt on AWS:
-
-```bash
-# Deploy all infrastructure
-terragrunt run-all apply
-
-# Build and push Docker image
-make deploy
-
-# Check deployment status
-aws ecs describe-services --cluster magic-castle-cluster --services magic-castle-service
+**Guest Invites Table**
+```
++---------------+----------------------+-----------------+-----------+
+| Invitation ID | Guest Email          | Redeemed        | Created   |
+|---------------+----------------------+-----------------+-----------|
+| 6ed1...        | guest@example.com   | Yes             | 2025-03-01|
+| f2b7...        |                     | No              | 2025-03-04|
++---------------+----------------------+-----------------+-----------+
+Search invitations…                 Page 1 of N (25 per page)
 ```
 
-## 🔒 Security Features
+> The live UI uses Simple-DataTables for column sorting, pagination, and instant search.
 
-- **HTTPS Only**: All traffic encrypted in transit
-- **Private Subnets**: Database and application in private networks
-- **Secrets Management**: API tokens stored in AWS Secrets Manager
-- **IAM Roles**: Least-privilege access for all services
-- **Security Groups**: Network-level access control
-- **VPC Endpoints**: Private connectivity to AWS services
-- **Encryption**: Data encrypted at rest and in transit
+#### Bulk Invitation Generation
 
-## 📊 Monitoring & Observability
+```mermaid
+sequenceDiagram
+    participant Admin as Admin Tools (Test Driver)
+    participant API as Flask API
+    participant DB as RDS (guest_invites)
+    participant SES as AWS SES
+    participant Guest as Guest User
+    participant SevenRooms as SevenRooms API
 
-- **Health Checks**: Application health monitoring at `/health`
-- **CloudWatch Logs**: Centralized logging for all components
-- **ECS Service Discovery**: Automatic service registration
-- **ALB Metrics**: Load balancer performance monitoring
-- **RDS Monitoring**: Database performance insights
+    Admin->>API: POST /peoplevine-generate-invitations<br/>Authorization: Bearer MY_ADMIN_AUTH_TOKEN
+    API->>DB: Insert invitation with guest_email = null
+    DB-->>API: Invitation IDs created
+    API-->>Admin: Return invitation_id list
 
-## 🔧 Configuration Management
+    Admin->>API: POST /public-invitation-redemption<br/>invitation_id, guest_email, guest_last_name
+    API->>DB: Update invitation with manual guest details
+    API->>SES: Send guest_invitation_email
+    SES-->>Guest: Manual invitation email
 
-### Environment Variables (ECS Task)
-- `FLASK_ENV`: Set to "production"
-- `SECRETS_MANAGER_ARN`: ARN of the secrets in AWS Secrets Manager
-- `IMAGE_VERSION`: Version tag for the Docker image
-- `DISABLE_AUTHENTICATION_HEADERS`: Optional; set to `true` for local testing to bypass bearer-token checks
-- `GUNICORN_WORKERS`: Optional; override Gunicorn worker count (default: 4 in containers)
-- `GUNICORN_LOG_LEVEL`: Optional; override Gunicorn log level (default: `info`)
-- `GUNICORN_TIMEOUT`: Optional; request timeout in seconds (default: 30)
-- `GUNICORN_ACCESSLOG`: Optional; set to `-` (default) for stdout or provide a file path
-- `GUNICORN_ERRORLOG`: Optional; set to `-` (default) for stderr or provide a file path
+    Guest->>API: GET /guest-invite-accept
+    API->>DB: Validate invitation status
+    API->>SevenRooms: Retrieve venue availability
+    API-->>Guest: Render reservation widget
 
-### Secrets (AWS Secrets Manager)
-- `PEOPLEVINE_TOKEN`: PeopleVine API authentication token
-- `MY_AUTH_TOKEN`: Incoming auth token for PeopleVine calls (admin token is also accepted by those endpoints)
-- `MY_ADMIN_AUTH_TOKEN`: Admin auth token for privileged endpoints
-- `MY_AUTH_ID`: Incoming auth id/username for PeopleVine calls
-- `SEVENROOMS_CLIENT_ID`: SevenRooms API client ID (required for reservation system)
-- `SEVENROOMS_CLIENT_SECRET`: SevenRooms API client secret (required for reservation system)
-- `SEVENROOMS_HOST`: SevenRooms API host URL (default: https://api.sevenrooms.com)
-- `SEVENROOMS_VERSION`: SevenRooms API version (default: /2_4)
-- `SEVENROOMS_VENUE_ID`: SevenRooms venue identifier used when launching the widget
-- `SEVENROOMS_WEBHOOK_CLIENT_ID`: SevenRooms client token used for widget callbacks
-- `SEVENROOMS_RESERVATION_WIDGET_URL`: SevenRooms reservation widget base URL
-- `DB_HOST`: Database hostname
-- `DB_PORT`: Database port (3306)
-- `DB_NAME`: Database name
-- `DB_USER`: Database username
-- `DB_PASSWORD`: Database password
-
-**Note**: SES authentication is handled via ECS task role - no SMTP credentials needed.
-
-**Secrets Update Workflow**: When modifying `terraform/secrets/config.yaml`, be sure to rerun the corresponding infrastructure updates (e.g. `terragrunt apply` for the secrets-manager module) and redeploy the ECS service so tasks pick up the refreshed secrets.
+    Guest->>API: POST /api/create-reservation
+    API->>SevenRooms: Create reservation
+    SevenRooms-->>API: Reservation confirmation
+    API->>DB: Mark invitation redeemed
+    API-->>Guest: Confirmation page
+```
 
 ## 🚨 Error Handling
 
