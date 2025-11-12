@@ -56,12 +56,12 @@ graph TB
     DNS --> ALB
     ALB --> ECS
     
-    style User fill:#e1f5fe
-    style Guest fill:#f3e5f5
-    style ECS fill:#fff3e0
-    style DB fill:#e8f5e8
-    style ALB fill:#e0f2f1
-    style Secrets fill:#fce4ec
+    style User fill:#1e40af,color:#ffffff
+    style Guest fill:#7c3aed,color:#ffffff
+    style ECS fill:#0f766e,color:#ffffff
+    style DB fill:#0d9488,color:#ffffff
+    style ALB fill:#1e293b,color:#ffffff
+    style Secrets fill:#9333ea,color:#ffffff
 ```
 
 ## ✨ Features
@@ -94,7 +94,7 @@ graph TB
 ### 2. Create Guest Invitation
 - **Endpoint**: `POST /peoplevine-guest-invite`
 - **Purpose**: Create a single guest invitation and send email notification
-- **Authentication**: `Authorization: Bearer <MY_AUTH_TOKEN>`
+- **Authentication**: `Authorization: Bearer <MY_AUTH_TOKEN>` or `Authorization: Bearer <MY_ADMIN_AUTH_TOKEN>`
 - **Payload**: 
   ```json
   {
@@ -155,7 +155,7 @@ graph TB
 ### 6. SevenRooms Callback
 - **Endpoint**: `POST /sevenrooms_callback_post_reservation`
 - **Purpose**: Webhook callback from SevenRooms after reservation is made
-- **Authentication**: `Authorization: Bearer <MY_AUTH_TOKEN>`
+- **Authentication**: `Authorization: Bearer <MY_AUTH_TOKEN>` or `Authorization: Bearer <MY_ADMIN_AUTH_TOKEN>`
 - **Response**: JSON confirmation of invitation redemption
 
 ### 7. Public Invitation Redemption
@@ -167,6 +167,9 @@ graph TB
 - **Endpoint**: `GET /guest-invites`
 - **Purpose**: Retrieve all guest invitations (administrative)
 - **Authentication**: `Authorization: Bearer <MY_ADMIN_AUTH_TOKEN>`
+- **Outputs**:
+  - JSON payload when `Accept: application/json` or `?format=json`
+  - Interactive HTML table (sortable/searchable) for browser viewing
 
 ### 9. Admin Dashboard
 - **Endpoint**: `GET /dashboard`
@@ -275,17 +278,17 @@ graph TD
     K3 --> Z
     L2 --> Z
     
-    style A fill:#e1f5fe
-    style Z fill:#e8f5e8
-    style C fill:#fff3e0
-    style D fill:#fff3e0
-    style E fill:#f3e5f5
-    style G fill:#c8e6c9
-    style H fill:#fff9c4
-    style I fill:#ede7f6
-    style J fill:#ede7f6
-    style K fill:#e0f2f1
-    style L fill:#e8f5e8
+    style A fill:#1d4ed8,color:#ffffff
+    style Z fill:#16a34a,color:#ffffff
+    style C fill:#2563eb,color:#ffffff
+    style D fill:#2563eb,color:#ffffff
+    style E fill:#7c3aed,color:#ffffff
+    style G fill:#0ea5e9,color:#ffffff
+    style H fill:#f97316,color:#ffffff
+    style I fill:#6d28d9,color:#ffffff
+    style J fill:#6d28d9,color:#ffffff
+    style K fill:#1e293b,color:#ffffff
+    style L fill:#16a34a,color:#ffffff
 ```
 
 ## 🧑‍💼 Manual Reservation (Admin Tools)
@@ -320,6 +323,48 @@ sequenceDiagram
     API->>DB: Mark invitation redeemed
     API-->>Guest: Confirmation page
 ```
+
+## 🛠️ Administrative Tools
+
+The repository includes a Flask-based test driver and polished HTML interfaces that proxy through to the production API while automatically injecting the correct bearer tokens.
+
+- Launch via `python3 ./test-drivers/test-driver.py` (or `./test.sh`)
+- Navigate to `http://localhost:8080/`
+- Available tools:
+  - **Guest Invitation Form** — renders `/peoplevine-guest-invite` for single-invite workflows
+  - **Bulk Invitation Generator** — renders `/peoplevine-generate-invitations` with multi-member support
+  - **Display Database** — opens `/guest-invites`, showing a sortable/searchable data grid
+  - **Admin Dashboard** — opens `/dashboard` with metrics, timeframe selector, and graph/data toggle
+
+### Sample Outputs
+
+**Bulk Invitation Generator**
+```
++---------------------------------------------------------------------+
+| Member 1                                                            |
+| ------------------------------------------------------------------- |
+| Member ID           [ 0________ ]                                   |
+| Number of Invites   [ 10_______ ]                                   |
+| Member First Name   [ Magic____ ]                                   |
+| Member Last Name    [ Castle___ ]                                   |
+|                                 [Remove]                           |
++---------------------------------------------------------------------+
+| [➕ Add Member]                                   [Generate Invites] |
++---------------------------------------------------------------------+
+```
+
+**Guest Invites Table**
+```
++---------------+----------------------+-----------------+-----------+
+| Invitation ID | Guest Email          | Redeemed        | Created   |
+|---------------+----------------------+-----------------+-----------|
+| 6ed1...        | guest@example.com   | Yes             | 2025-03-01|
+| f2b7...        |                     | No              | 2025-03-04|
++---------------+----------------------+-----------------+-----------+
+Search invitations…                 Page 1 of N (25 per page)
+```
+
+> The live UI uses Simple-DataTables for column sorting, pagination, and instant search.
 
 ## 📧 Email & Reservation Flow
 
@@ -523,7 +568,7 @@ aws ecs describe-services --cluster magic-castle-cluster --services magic-castle
 
 ### Secrets (AWS Secrets Manager)
 - `PEOPLEVINE_TOKEN`: PeopleVine API authentication token
-- `MY_AUTH_TOKEN`: Incoming auth token for PeopleVine calls
+- `MY_AUTH_TOKEN`: Incoming auth token for PeopleVine calls (admin token is also accepted by those endpoints)
 - `MY_ADMIN_AUTH_TOKEN`: Admin auth token for privileged endpoints
 - `MY_AUTH_ID`: Incoming auth id/username for PeopleVine calls
 - `SEVENROOMS_CLIENT_ID`: SevenRooms API client ID (required for reservation system)
@@ -573,7 +618,7 @@ curl https://guest-reservations.magiccastle-cloud.com/health
 ```bash
 curl -X POST https://guest-reservations.magiccastle-cloud.com/peoplevine-guest-invite \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $MY_AUTH_TOKEN" \
+  -H "Authorization: Bearer $MY_AUTH_TOKEN_OR_MY_ADMIN_AUTH_TOKEN" \
   -d '{
     "member_first_name": "John",
     "member_last_name": "Doe",
@@ -581,6 +626,7 @@ curl -X POST https://guest-reservations.magiccastle-cloud.com/peoplevine-guest-i
     "guest_email": "guest@example.com"
   }'
 ```
+> Tip: Set `MY_AUTH_TOKEN_OR_MY_ADMIN_AUTH_TOKEN` to whichever bearer token you need (standard or admin) before running the example.
 
 ### Create Reservation
 ```bash
