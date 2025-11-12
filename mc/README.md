@@ -293,37 +293,6 @@ graph TD
 
 ### Flow Diagrams
 
-```mermaid
-sequenceDiagram
-    participant AdminUI as Admin UI (/admin-dump-database)
-    participant API
-    participant DB
-
-    AdminUI->>API: GET /admin-dump-database<br/>Authorization: Bearer MY_ADMIN_AUTH_TOKEN
-    API->>API: Ensure debug mode enabled
-    API->>DB: SELECT * FROM guest_invites
-    DB-->>API: Invitation records
-    alt JSON requested (?format=json or Accept header)
-        API-->>AdminUI: JSON { guest_invites, total }
-    else
-        API-->>AdminUI: Render guest_invites_table.html (sortable grid)
-    end
-```
-
-```mermaid
-sequenceDiagram
-    participant AdminUI as Admin UI (/dashboard)
-    participant API
-    participant DB
-
-    AdminUI->>API: GET /dashboard?timeframe=1_month&view=data<br/>Authorization: Bearer MY_ADMIN_AUTH_TOKEN
-    API->>API: Parse timeframe/view params
-    API->>DB: Query aggregated invitation/reservation metrics
-    DB-->>API: Counts + time-series buckets
-    API->>API: Prepare cards or Chart.js datasets
-    API-->>AdminUI: Render admin_dashboard.html with live UTC clock
-```
-
 ## 📧 Email & Reservation Flow
 
 ```mermaid
@@ -373,6 +342,38 @@ sequenceDiagram
     ALB-->>Guest: Display Confirmation Page
 ```
 
+### Manual Invitation Redemption Flow
+
+```mermaid
+sequenceDiagram
+    participant Guest
+    participant Web as Public Form (/public-invitation-redemption)
+    participant API
+    participant DB
+    participant SES
+    participant SevenRooms
+
+    Guest->>Web: GET /public-invitation-redemption
+    Web-->>Guest: Render HTML form
+
+    Guest->>Web: Submit invitation_id, guest_email, guest_last_name
+    Web->>API: POST /public-invitation-redemption (form or JSON payload)
+    API->>DB: Lookup invitation by invitation_id
+    alt Invitation not found or already populated
+        API-->>Guest: Render status page (error)
+    else
+        API->>DB: Update guest_email & guest_last_name
+        API->>SES: Send guest_invitation_email
+        SES-->>Guest: Invitation email with acceptance link
+        API-->>Guest: Render confirmation HTML
+        Note over Guest,SevenRooms: Guest clicks link in email later
+        Guest->>SevenRooms: Follow invite link -> GET /guest-invite-accept
+        SevenRooms->>API: (redirect via API to widget)
+        API->>DB: Validate invitation and track guest_clicked_date
+        API-->>SevenRooms: Redirect guest to reservation widget URL
+    end
+```
+
 ## 🛠️ Administrative Tools
 
 The repository includes a Flask-based test driver and polished HTML interfaces that proxy through to the production API while automatically injecting the correct bearer tokens.
@@ -419,7 +420,7 @@ Search invitations…                 Page 1 of N (25 per page)
 
 ```mermaid
 sequenceDiagram
-    participant Admin as Admin Tools (Test Driver)
+    participant AdminUI as Admin UI (Test Driver)
     participant API as Flask API
     participant DB as RDS (guest_invites)
     participant SES as AWS SES
