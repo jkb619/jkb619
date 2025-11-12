@@ -279,7 +279,7 @@ Content-Type: application/json
 
 Retrieve a list of all guest invitations. Useful for admins cross-checking data.
 
-**Endpoint**: `GET /guest-invites`
+**Endpoint**: `GET /admin-dump-database`
 
 **Authentication**: `Authorization: Bearer <MY_ADMIN_AUTH_TOKEN>` and debug mode enabled (`DEBUG_ENABLED=true`)
 

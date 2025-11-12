@@ -164,7 +164,7 @@ graph TB
 - **Response**: Branded HTML confirmation/notice page.
 
 ### 8. List All Invitations
-- **Endpoint**: `GET /guest-invites`
+- **Endpoint**: `GET /admin-dump-database`
 - **Purpose**: Retrieve all guest invitations (administrative)
 - **Authentication**: `Authorization: Bearer <MY_ADMIN_AUTH_TOKEN>`
 - **Outputs**:
@@ -209,7 +209,7 @@ graph TD
     B -->|POST /sevenrooms_callback_post_reservation| H[SevenRooms Callback]
     B -->|GET /public-invitation-redemption| I[Render Manual Redemption Form]
     B -->|POST /public-invitation-redemption| J[Process Manual Redemption]
-    B -->|GET /guest-invites| K[List All Invitations]
+    B -->|GET /admin-dump-database| K[List All Invitations]
     B -->|GET /health| L[Health Check]
     
     C --> C1[Validate Input Data]
@@ -291,7 +291,49 @@ graph TD
     style L fill:#16a34a,color:#ffffff
 ```
 
-## 🧑‍💼 Manual Reservation (Admin Tools)
+## 🛠️ Administrative Tools
+
+The repository includes a Flask-based test driver and polished HTML interfaces that proxy through to the production API while automatically injecting the correct bearer tokens.
+
+- Launch via `python3 ./test-drivers/test-driver.py` (or `./test.sh`)
+- Navigate to `http://localhost:8080/`
+- Available tools:
+  - **Guest Invitation Form** — renders `/peoplevine-guest-invite` for single-invite workflows
+  - **Bulk Invitation Generator** — renders `/peoplevine-generate-invitations` with multi-member support
+  - **Display Database** — opens `/admin-dump-database`, showing a sortable/searchable data grid
+  - **Admin Dashboard** — opens `/dashboard` with metrics, timeframe selector, and graph/data toggle
+
+### Sample Outputs
+
+**Bulk Invitation Generator**
+```
++---------------------------------------------------------------------+
+| Member 1                                                            |
+| ------------------------------------------------------------------- |
+| Member ID           [ 0________ ]                                   |
+| Number of Invites   [ 10_______ ]                                   |
+| Member First Name   [ Magic____ ]                                   |
+| Member Last Name    [ Castle___ ]                                   |
+|                                 [Remove]                           |
++---------------------------------------------------------------------+
+| [➕ Add Member]                                   [Generate Invites] |
++---------------------------------------------------------------------+
+```
+
+**Guest Invites Table**
+```
++---------------+----------------------+-----------------+-----------+
+| Invitation ID | Guest Email          | Redeemed        | Created   |
+|---------------+----------------------+-----------------+-----------|
+| 6ed1...        | guest@example.com   | Yes             | 2025-03-01|
+| f2b7...        |                     | No              | 2025-03-04|
++---------------+----------------------+-----------------+-----------+
+Search invitations…                 Page 1 of N (25 per page)
+```
+
+> The live UI uses Simple-DataTables for column sorting, pagination, and instant search.
+
+#### Bulk Invitation Generation
 
 ```mermaid
 sequenceDiagram
@@ -324,47 +366,57 @@ sequenceDiagram
     API-->>Guest: Confirmation page
 ```
 
-## 🛠️ Administrative Tools
+### Flow Diagrams
 
-The repository includes a Flask-based test driver and polished HTML interfaces that proxy through to the production API while automatically injecting the correct bearer tokens.
+```mermaid
+sequenceDiagram
+    participant AdminUI as Admin UI (/peoplevine-generate-invitations)
+    participant API
+    participant DB
 
-- Launch via `python3 ./test-drivers/test-driver.py` (or `./test.sh`)
-- Navigate to `http://localhost:8080/`
-- Available tools:
-  - **Guest Invitation Form** — renders `/peoplevine-guest-invite` for single-invite workflows
-  - **Bulk Invitation Generator** — renders `/peoplevine-generate-invitations` with multi-member support
-  - **Display Database** — opens `/guest-invites`, showing a sortable/searchable data grid
-  - **Admin Dashboard** — opens `/dashboard` with metrics, timeframe selector, and graph/data toggle
+    AdminUI->>API: GET /peoplevine-generate-invitations
+    API-->>AdminUI: Render HTML form
 
-### Sample Outputs
-
-**Bulk Invitation Generator**
-```
-+---------------------------------------------------------------------+
-| Member 1                                                            |
-| ------------------------------------------------------------------- |
-| Member ID           [ 0________ ]                                   |
-| Number of Invites   [ 10_______ ]                                   |
-| Member First Name   [ Magic____ ]                                   |
-| Member Last Name    [ Castle___ ]                                   |
-|                                 [Remove]                           |
-+---------------------------------------------------------------------+
-| [➕ Add Member]                                   [Generate Invites] |
-+---------------------------------------------------------------------+
+    AdminUI->>API: POST /peoplevine-generate-invitations<br/>Authorization: Bearer MY_ADMIN_AUTH_TOKEN
+    API->>API: Validate payload (members array)
+    loop For each member
+        API->>API: Generate UUID invitation IDs
+        API->>DB: Insert guest_invites rows (guest_email=null)
+        DB-->>API: Insert confirmation
+    end
+    API-->>AdminUI: JSON results + success banner
 ```
 
-**Guest Invites Table**
-```
-+---------------+----------------------+-----------------+-----------+
-| Invitation ID | Guest Email          | Redeemed        | Created   |
-|---------------+----------------------+-----------------+-----------|
-| 6ed1...        | guest@example.com   | Yes             | 2025-03-01|
-| f2b7...        |                     | No              | 2025-03-04|
-+---------------+----------------------+-----------------+-----------+
-Search invitations…                 Page 1 of N (25 per page)
+```mermaid
+sequenceDiagram
+    participant AdminUI as Admin UI (/admin-dump-database)
+    participant API
+    participant DB
+
+    AdminUI->>API: GET /admin-dump-database<br/>Authorization: Bearer MY_ADMIN_AUTH_TOKEN
+    API->>API: Ensure debug mode enabled
+    API->>DB: SELECT * FROM guest_invites
+    DB-->>API: Invitation records
+    alt JSON requested (?format=json or Accept header)
+        API-->>AdminUI: JSON { guest_invites, total }
+    else
+        API-->>AdminUI: Render guest_invites_table.html (sortable grid)
+    end
 ```
 
-> The live UI uses Simple-DataTables for column sorting, pagination, and instant search.
+```mermaid
+sequenceDiagram
+    participant AdminUI as Admin UI (/dashboard)
+    participant API
+    participant DB
+
+    AdminUI->>API: GET /dashboard?timeframe=1_month&view=data<br/>Authorization: Bearer MY_ADMIN_AUTH_TOKEN
+    API->>API: Parse timeframe/view params
+    API->>DB: Query aggregated invitation/reservation metrics
+    DB-->>API: Counts + time-series buckets
+    API->>API: Prepare cards or Chart.js datasets
+    API-->>AdminUI: Render admin_dashboard.html with live UTC clock
+```
 
 ## 📧 Email & Reservation Flow
 

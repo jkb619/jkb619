@@ -70,7 +70,7 @@ The system follows a modern microservices architecture deployed on AWS with the 
 - `POST /peoplevine-guest-invite` - Create single invitation
 - `POST /peoplevine-generate-invitations` - Bulk invitation generation
 - `GET /guest-invite-accept` - Accept invitation
-- `GET /guest-invites` - List all invitations
+- `GET /admin-dump-database` - List all invitations
 
 ### 2. Infrastructure Layer
 
