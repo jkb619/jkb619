@@ -524,24 +524,6 @@ curl -X POST https://guest-reservations.magiccastle-cloud.com/peoplevine-guest-i
 ```
 > Tip: Set `MY_AUTH_TOKEN_OR_MY_ADMIN_AUTH_TOKEN` to whichever bearer token you need (standard or admin) before running the example.
 
-### Create Reservation
-```bash
-curl -X POST https://guest-reservations.magiccastle-cloud.com/api/create-reservation \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $MY_AUTH_TOKEN" \
-  -d '{
-    "invitation_id": "550e8400-e29b-41d4-a716-446655440000",
-    "venue_id": "12345",
-    "date": "2025-11-15",
-    "time": "19:00",
-    "party_size": 4,
-    "first_name": "John",
-    "last_name": "Doe",
-    "email": "guest@example.com",
-    "phone": "555-555-5555"
-  }'
-```
-
 ### Manual Invitation Redemption (JSON helper)
 ```bash
 curl -X POST https://guest-reservations.magiccastle-cloud.com/public-invitation-redemption \
